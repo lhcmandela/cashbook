@@ -1,0 +1,2264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>VaultStack</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  color-scheme: light;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  background:#F2F5F9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  overflow:hidden;
+}
+#root{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  overflow:hidden;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.28.4/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ===================== Local line-icon set ======================
+   Replaces lucide-react (an npm import that cannot run in a plain
+   published page). Same call shape: <Home size={22} color={..} />
+   =================================================================== */
+function IconBase({size=24,color="currentColor",strokeWidth=2,fill="none",style,children,...rest}){
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color}
+         strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+         style={style} {...rest}>
+      {children}
+    </svg>
+  );
+}
+function Home(p){return <IconBase {...p}><path d="m3 9 9-7 9 7"/><path d="M9 22V12h6v10"/><path d="M21 9v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9"/></IconBase>;}
+function Banknote(p){return <IconBase {...p}><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></IconBase>;}
+function Users(p){return <IconBase {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconBase>;}
+function Waves(p){return <IconBase {...p}><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></IconBase>;}
+function Settings(p){return <IconBase {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></IconBase>;}
+function Lock(p){return <IconBase {...p}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></IconBase>;}
+function Anchor(p){return <IconBase {...p}><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></IconBase>;}
+function Fish(p){return <IconBase {...p}><path d="M21 12c-3 4-7 6-11 6-4 0-7-2-8-6 1-4 4-6 8-6 4 0 8 2 11 6Z"/><circle cx="7" cy="12" r="1"/><path d="M2 9l1 3-1 3"/></IconBase>;}
+function Fuel(p){return <IconBase {...p}><line x1="3" y1="22" x2="15" y2="22"/><line x1="4" y1="9" x2="14" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2v0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/></IconBase>;}
+function Snowflake(p){return <IconBase {...p}><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></IconBase>;}
+function UtensilsCrossed(p){return <IconBase {...p}><path d="M16 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Z"/><path d="M8 2a3 3 0 0 0-3 3v3a3 3 0 0 0 3 3 3 3 0 0 0 3-3V5a3 3 0 0 0-3-3Z"/><path d="M8 11v11"/></IconBase>;}
+function Wrench(p){return <IconBase {...p}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></IconBase>;}
+function Car(p){return <IconBase {...p}><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></IconBase>;}
+function Package(p){return <IconBase {...p}><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.29 7 8.71 5 8.71-5"/><line x1="12" y1="22" x2="12" y2="12"/></IconBase>;}
+function Delete(p){return <IconBase {...p}><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></IconBase>;}
+function Wind(p){return <IconBase {...p}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></IconBase>;}
+function CloudRain(p){return <IconBase {...p}><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></IconBase>;}
+function MessageCircle(p){return <IconBase {...p}><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></IconBase>;}
+function Copy(p){return <IconBase {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></IconBase>;}
+function Check(p){return <IconBase {...p}><polyline points="20 6 9 17 4 12"/></IconBase>;}
+function Plus(p){return <IconBase {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></IconBase>;}
+function Minus(p){return <IconBase {...p}><line x1="5" y1="12" x2="19" y2="12"/></IconBase>;}
+function Trash2(p){return <IconBase {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></IconBase>;}
+function Star(p){return <IconBase {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></IconBase>;}
+function Info(p){return <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></IconBase>;}
+
+/* ============================================================
+   VaultStack — Tier 1 Demo (v6)
+   New payout engine (from real owner research):
+     Net pot
+     − Position pay (off the top, BEFORE split)   [confirm w/ owner]
+     = Splittable pot
+     × ownerSplit%  → Owner's maintenance half (default 50)
+     × (100−ownerSplit)% → Workers' half, divided by share units
+   Per worker: share of workers' half + own position pay
+               − loans − payments − deductions + bonuses − carried debt
+   One company only (multi-company deferred by decision).
+   ============================================================ */
+
+const NAVY = "#1A3C6E";
+const INK = "#101418";
+const MIST = "#F2F5F9";
+const LINE = "#D9E0EA";
+const GOOD = "#1E7A3C";
+const WARN = "#B26A00";
+const BAD = "#B3261E";
+const STORE_KEY = "vaultstack:app:v2"; /* bumped: new shape */
+
+const DEFAULT_EXPENSE_CATS = ["Premix", "Food", "Repairs", "Transport"];
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const fmt = (n) =>
+  "GH₵ " +
+  (Number(n) || 0).toLocaleString("en-GH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+const fmtDate = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+};
+
+/* ---------------- storage (offline-first, localStorage-backed) ---------------- */
+async function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+async function persist(state) {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function wipeSaved() {
+  try {
+    localStorage.removeItem(STORE_KEY);
+  } catch {}
+}
+
+function normalizeState(s) {
+  if (!s) return s;
+  return {
+    ...s,
+    sales: s.sales || [],
+    expenses: s.expenses || [],
+    pastSeasons: s.pastSeasons || [],
+    positions: s.positions || [],
+    expenseCats:
+      s.expenseCats && s.expenseCats.length ? s.expenseCats : [...DEFAULT_EXPENSE_CATS],
+    company: {
+      ...(s.company || {}),
+      ownerSplit: s.company && s.company.ownerSplit != null ? s.company.ownerSplit : 50,
+      positionsBeforeSplit:
+        s.company && s.company.positionsBeforeSplit != null
+          ? s.company.positionsBeforeSplit
+          : true,
+    },
+    season: { ...(s.season || {}), fixed: (s.season && s.season.fixed) || [] },
+    workers: (s.workers || []).map((w) => ({
+      ...w,
+      positionId: w.positionId || null,
+      loans: w.loans || [],
+      payments: w.payments || [],
+      adjustments: w.adjustments || [],
+    })),
+  };
+}
+
+/* ---------------- blank + demo data ---------------- */
+const blankState = () => ({
+  pin: null,
+  setupDone: false,
+  company: { name: "", owner: "", phone: "", ownerSplit: 50, positionsBeforeSplit: true },
+  season: { name: "", start: todayISO(), fixed: [] },
+  expenseCats: [...DEFAULT_EXPENSE_CATS],
+  positions: [],
+  workers: [],
+  sales: [],
+  expenses: [],
+  pastSeasons: [],
+});
+
+const POS_BOSUN = "p_bosun";
+const POS_ENGINE = "p_engine";
+
+const demoState = () => ({
+  pin: "1234",
+  setupDone: true,
+  company: {
+    name: "Selasi Fishing Co.",
+    owner: "Mandela Abotsi",
+    phone: "0241234567",
+    ownerSplit: 50,
+    positionsBeforeSplit: true,
+  },
+  season: {
+    name: "Major Season 2026",
+    start: "2026-04-01",
+    fixed: [
+      { id: uid(), name: "Net repairs", amount: 800 },
+      { id: uid(), name: "Boat maintenance", amount: 1200 },
+    ],
+  },
+  expenseCats: [...DEFAULT_EXPENSE_CATS],
+  positions: [
+    { id: POS_BOSUN, name: "Bosun", pay: 300 },
+    { id: POS_ENGINE, name: "Engine man", pay: 200 },
+  ],
+  workers: [
+    {
+      id: "w1",
+      name: "Kofi",
+      phone: "0249111111",
+      units: 3,
+      positionId: POS_BOSUN,
+      carriedDebt: 0,
+      loans: [{ id: uid(), date: "2026-05-10", amount: 200, note: "School fees" }],
+      payments: [{ id: uid(), date: "2026-05-22", type: "cash", amount: 100, desc: "Cash" }],
+      adjustments: [],
+    },
+    {
+      id: "w2",
+      name: "Yaw",
+      phone: "0249222222",
+      units: 2,
+      positionId: POS_ENGINE,
+      carriedDebt: 0,
+      loans: [],
+      payments: [{ id: uid(), date: "2026-05-15", type: "goods", amount: 120, desc: "Bag of rice" }],
+      adjustments: [
+        { id: uid(), date: "2026-05-20", kind: "bonus", amount: 50, reason: "Good catch" },
+      ],
+    },
+    {
+      id: "w3",
+      name: "Mensah",
+      phone: "",
+      units: 2,
+      positionId: null,
+      carriedDebt: 150,
+      loans: [],
+      payments: [],
+      adjustments: [],
+    },
+    {
+      id: "w4",
+      name: "Selorm",
+      phone: "",
+      units: 1,
+      positionId: null,
+      carriedDebt: 0,
+      loans: [],
+      payments: [],
+      adjustments: [
+        { id: uid(), date: "2026-05-25", kind: "deduction", amount: 30, reason: "Late" },
+      ],
+    },
+  ],
+  sales: [
+    { id: uid(), date: "2026-04-14", amount: 3200, note: "Tuesday landing" },
+    { id: uid(), date: "2026-04-29", amount: 2750, note: "" },
+    { id: uid(), date: "2026-05-13", amount: 1850, note: "Small catch" },
+    { id: uid(), date: "2026-06-02", amount: 2400, note: "" },
+  ],
+  expenses: [
+    { id: uid(), date: "2026-04-14", amount: 450, category: "Premix" },
+    { id: uid(), date: "2026-04-29", amount: 380, category: "Premix" },
+    { id: uid(), date: "2026-05-13", amount: 120, category: "Food" },
+    { id: uid(), date: "2026-05-30", amount: 250, category: "Repairs" },
+  ],
+  pastSeasons: [],
+});
+
+/* ---------------- payout engine (positions + configurable split) ---------------- */
+function positionPayFor(state, w) {
+  if (!w.positionId) return 0;
+  const p = state.positions.find((x) => x.id === w.positionId);
+  return p ? Number(p.pay) || 0 : 0;
+}
+function computeFinancials(state) {
+  const grossSales = state.sales.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const fixedTotal = state.season.fixed.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const varTotal = state.expenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const netPot = grossSales - fixedTotal - varTotal;
+
+  const positionsTotal = state.workers.reduce((s, w) => s + positionPayFor(state, w), 0);
+  const beforeSplit = state.company.positionsBeforeSplit !== false;
+
+  const potForSplit = beforeSplit ? Math.max(0, netPot - positionsTotal) : Math.max(0, netPot);
+
+  const ownerPct = Number(state.company.ownerSplit) || 0;
+  const ownerHalf = (potForSplit * ownerPct) / 100;
+  const workersHalf = potForSplit - ownerHalf;
+
+  const totalUnits = state.workers.reduce((s, w) => s + (Number(w.units) || 0), 0);
+  const vpu = totalUnits > 0 ? workersHalf / totalUnits : 0;
+
+  return {
+    grossSales,
+    fixedTotal,
+    varTotal,
+    netPot,
+    positionsTotal,
+    beforeSplit,
+    potForSplit,
+    ownerPct,
+    ownerHalf,
+    workersHalf,
+    totalUnits,
+    vpu,
+  };
+}
+function workerNumbers(state, w, fin) {
+  const unitShare = (Number(w.units) || 0) * fin.vpu;
+  const posPay = positionPayFor(state, w);
+  const grossShare = unitShare + posPay;
+  const loansTotal = (w.loans || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const paymentsTotal = (w.payments || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const adj = w.adjustments || [];
+  const bonusTotal = adj
+    .filter((a) => a.kind === "bonus")
+    .reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const dedTotal = adj
+    .filter((a) => a.kind === "deduction")
+    .reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const carried = Number(w.carriedDebt) || 0;
+  const payout = grossShare + bonusTotal - dedTotal - loansTotal - paymentsTotal - carried;
+  const borrowLimit = Math.max(0, grossShare + bonusTotal - dedTotal - loansTotal - carried);
+  return {
+    unitShare,
+    posPay,
+    grossShare,
+    loansTotal,
+    paymentsTotal,
+    bonusTotal,
+    dedTotal,
+    carried,
+    payout,
+    borrowLimit,
+  };
+}
+
+/* ---------------- presets ---------------- */
+function catIcon(name) {
+  const n = (name || "").toLowerCase();
+  if (n.includes("premix") || n.includes("fuel") || n.includes("petrol")) return Fuel;
+  if (n.includes("ice")) return Snowflake;
+  if (n.includes("food") || n.includes("chop")) return UtensilsCrossed;
+  if (n.includes("repair") || n.includes("net") || n.includes("mend")) return Wrench;
+  if (n.includes("transport") || n.includes("car") || n.includes("lorry")) return Car;
+  return Package;
+}
+const GOODS_PRESETS = ["Bag of rice", "Premix", "Airtime", "Foodstuff"];
+const DEDUCT_REASONS = ["Late", "Absent", "Damaged gear"];
+const BONUS_REASONS = ["Good catch", "Extra work"];
+
+/* ---------------- tiny UI kit ---------------- */
+const baseFont =
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
+function Btn({ label, onClick, kind = "primary", full = true, small = false, disabled = false }) {
+  const styles = {
+    primary: { background: NAVY, color: "#fff", border: "2px solid " + NAVY },
+    ghost: { background: "#fff", color: NAVY, border: "2px solid " + NAVY },
+    quiet: { background: MIST, color: INK, border: "2px solid " + MIST },
+    danger: { background: "#fff", color: BAD, border: "2px solid " + BAD },
+    dangerSolid: { background: BAD, color: "#fff", border: "2px solid " + BAD },
+  }[kind];
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      style={{
+        ...styles,
+        opacity: disabled ? 0.45 : 1,
+        width: full ? "100%" : "auto",
+        padding: small ? "10px 14px" : "16px 18px",
+        borderRadius: 14,
+        fontSize: small ? 15 : 18,
+        fontWeight: 700,
+        fontFamily: baseFont,
+        cursor: disabled ? "default" : "pointer",
+        touchAction: "manipulation",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Card({ children, pad = 16, style = {} }) {
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid " + LINE,
+        borderRadius: 16,
+        padding: pad,
+        marginBottom: 12,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Row({ left, right, strong = false, color }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        padding: "7px 0",
+        fontSize: strong ? 18 : 15.5,
+        fontWeight: strong ? 800 : 500,
+        color: color || INK,
+      }}
+    >
+      <span style={{ color: strong ? color || INK : "#4A5568" }}>{left}</span>
+      <span style={{ fontVariantNumeric: "tabular-nums" }}>{right}</span>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, type = "text", placeholder = "", inputMode }) {
+  return (
+    <label style={{ display: "block", marginBottom: 14 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 6 }}>{label}</div>
+      <input
+        type={type}
+        inputMode={inputMode}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "14px 14px",
+          fontSize: 17,
+          border: "2px solid " + LINE,
+          borderRadius: 12,
+          fontFamily: baseFont,
+          outline: "none",
+        }}
+      />
+    </label>
+  );
+}
+
+function Modal({ title, onClose, children }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(16,20,24,0.55)",
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        zIndex: 50,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#fff",
+          width: "100%",
+          maxWidth: 430,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          borderRadius: "20px 20px 0 0",
+          padding: "18px 18px 26px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 14,
+          }}
+        >
+          <div style={{ fontSize: 19, fontWeight: 800, color: INK }}>{title}</div>
+          <button
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: MIST,
+              borderRadius: 10,
+              padding: "8px 12px",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Close
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Pill({ text, tone = "neutral" }) {
+  const map = {
+    neutral: { bg: MIST, fg: "#3D4754" },
+    good: { bg: "#E6F4EA", fg: GOOD },
+    warn: { bg: "#FFF3E0", fg: WARN },
+    bad: { bg: "#FDECEA", fg: BAD },
+    navy: { bg: "#E8EEF7", fg: NAVY },
+  }[tone];
+  return (
+    <span
+      style={{
+        background: map.bg,
+        color: map.fg,
+        fontSize: 12.5,
+        fontWeight: 800,
+        padding: "4px 10px",
+        borderRadius: 999,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+/* ---------------- shared keypad key ---------------- */
+function Key({ children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "16px 0",
+        fontSize: 23,
+        fontWeight: 800,
+        borderRadius: 14,
+        border: "2px solid " + LINE,
+        background: "#fff",
+        color: INK,
+        cursor: "pointer",
+        touchAction: "manipulation",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ---------------- PIN pad ---------------- */
+function PinPad({ title, subtitle, onComplete, errorMsg }) {
+  const [digits, setDigits] = useState("");
+  useEffect(() => {
+    if (digits.length === 4) {
+      const d = digits;
+      setDigits("");
+      onComplete(d);
+    }
+  }, [digits, onComplete]);
+  const press = (k) => {
+    if (k === "del") setDigits((d) => d.slice(0, -1));
+    else if (digits.length < 4) setDigits((d) => d + k);
+  };
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"];
+  return (
+    <div style={{ textAlign: "center", padding: "30px 22px" }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 18,
+            background: MIST,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Lock size={30} color={NAVY} strokeWidth={2.4} />
+        </div>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: INK }}>{title}</div>
+      <div style={{ fontSize: 15, color: "#5A6675", margin: "6px 0 18px" }}>{subtitle}</div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 14, marginBottom: 8 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: 999,
+              border: "2.5px solid " + NAVY,
+              background: i < digits.length ? NAVY : "transparent",
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ height: 22, color: BAD, fontSize: 14, fontWeight: 700 }}>{errorMsg || ""}</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 12,
+          maxWidth: 300,
+          margin: "0 auto",
+        }}
+      >
+        {keys.map((k, i) =>
+          k === "" ? (
+            <div key={i} />
+          ) : (
+            <Key key={i} onClick={() => press(k)}>
+              {k === "del" ? <Delete size={22} /> : k}
+            </Key>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- KeypadSheet: MoMo-style amount entry ---------------- */
+function KeypadSheet({
+  title,
+  HeaderIcon,
+  subtitle,
+  quick = [],
+  maxAmount = null,
+  maxMsg = "More than the limit.",
+  confirmLabel = "Save",
+  onSave,
+  onClose,
+}) {
+  const [val, setVal] = useState("");
+  const [date, setDate] = useState(todayISO());
+  const [editDate, setEditDate] = useState(false);
+  const amount = Number(val) || 0;
+  const over = maxAmount != null && amount > maxAmount;
+
+  const press = (k) => {
+    if (k === "del") return setVal((v) => v.slice(0, -1));
+    setVal((v) => {
+      if (k === "." && v.includes(".")) return v;
+      if (v.includes(".") && v.split(".")[1].length >= 2) return v;
+      if (v.replace(".", "").length >= 8) return v;
+      if (v === "" && k === ".") return "0.";
+      if (v === "0" && k !== ".") return k;
+      return v + k;
+    });
+  };
+
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "del"];
+
+  return (
+    <Modal title={title} onClose={onClose}>
+      {subtitle && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 14.5,
+            color: "#5A6675",
+            marginBottom: 10,
+          }}
+        >
+          {HeaderIcon && <HeaderIcon size={18} color={NAVY} />}
+          <span>{subtitle}</span>
+        </div>
+      )}
+
+      <div
+        style={{
+          background: MIST,
+          borderRadius: 16,
+          padding: "18px 16px",
+          textAlign: "center",
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 38,
+            fontWeight: 900,
+            color: over ? BAD : NAVY,
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: 0.5,
+          }}
+        >
+          GH₵ {val === "" ? "0" : val}
+        </div>
+        <button
+          onClick={() => setEditDate((e) => !e)}
+          style={{
+            border: "none",
+            background: "none",
+            color: "#5A6675",
+            fontSize: 13.5,
+            fontWeight: 700,
+            textDecoration: "underline",
+            cursor: "pointer",
+            marginTop: 4,
+          }}
+        >
+          {date === todayISO() ? "Today" : fmtDate(date)} · change
+        </button>
+        {editDate && (
+          <div style={{ marginTop: 8 }}>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{
+                padding: "10px 12px",
+                fontSize: 16,
+                border: "2px solid " + LINE,
+                borderRadius: 10,
+                fontFamily: baseFont,
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {quick.length > 0 && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          {quick.map((q) => (
+            <button
+              key={q}
+              onClick={() => setVal(String(q))}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                borderRadius: 12,
+                border: "2px solid " + (val === String(q) ? NAVY : LINE),
+                background: val === String(q) ? "#E8EEF7" : "#fff",
+                color: NAVY,
+                fontWeight: 800,
+                fontSize: 15,
+                cursor: "pointer",
+              }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 10,
+          marginBottom: 12,
+        }}
+      >
+        {keys.map((k, i) => (
+          <Key key={i} onClick={() => press(k)}>
+            {k === "del" ? <Delete size={22} /> : k}
+          </Key>
+        ))}
+      </div>
+
+      {maxAmount != null && (
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: over ? BAD : "#5A6675",
+            marginBottom: 10,
+            textAlign: "center",
+          }}
+        >
+          {over ? maxMsg : "Limit: " + fmt(maxAmount)}
+        </div>
+      )}
+
+      <Btn
+        label={confirmLabel + (amount > 0 ? " · " + fmt(amount) : "")}
+        disabled={!amount || over}
+        onClick={() => onSave({ amount, date })}
+      />
+    </Modal>
+  );
+}
+
+/* ---------------- confirm-remove sheet ---------------- */
+function ConfirmRemove({ lines, title, onConfirm, onClose }) {
+  return (
+    <Modal title="Remove this entry?" onClose={onClose}>
+      <Card pad={14} style={{ background: MIST, border: "none" }}>
+        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{title}</div>
+        {lines.map((l, i) => (
+          <div key={i} style={{ fontSize: 14.5, color: "#4A5568" }}>
+            {l}
+          </div>
+        ))}
+      </Card>
+      <div style={{ fontSize: 14.5, color: "#5A6675", marginBottom: 12 }}>
+        This cannot be undone. All totals will update.
+      </div>
+      <Btn label={<><Trash2 size={20} /> Remove entry</>} kind="dangerSolid" onClick={onConfirm} />
+    </Modal>
+  );
+}
+
+/* ---------------- statement helpers ---------------- */
+function buildStatement(state, fin, w) {
+  const n = workerNumbers(state, w, fin);
+  const posName = w.positionId
+    ? (state.positions.find((p) => p.id === w.positionId) || {}).name
+    : null;
+  const lines = [
+    "VAULTSTACK STATEMENT",
+    state.company.name,
+    "Season: " + state.season.name,
+    "For: " + w.name + (posName ? " (" + posName + ")" : ""),
+    "------------------------------",
+    `Share units: ${w.units} of ${fin.totalUnits}`,
+    "Value per unit: " + fmt(fin.vpu),
+    "Share from units: " + fmt(n.unitShare),
+  ];
+  if (n.posPay > 0) lines.push("Position pay (" + posName + "): + " + fmt(n.posPay));
+  lines.push(
+    "Bonuses: + " + fmt(n.bonusTotal),
+    "Deductions: − " + fmt(n.dedTotal),
+    "Loans taken: − " + fmt(n.loansTotal),
+    "Payments received: − " + fmt(n.paymentsTotal),
+    "Debt from last season: − " + fmt(n.carried),
+    "------------------------------",
+    "PAYOUT SO FAR: " + fmt(n.payout),
+    n.payout < 0
+      ? "Note: this debt will carry to next season."
+      : "Estimate only — final amount at season close."
+  );
+  return lines.join("\n");
+}
+function waLink(phone, text) {
+  let p = (phone || "").replace(/\D/g, "");
+  if (p.startsWith("0")) p = "233" + p.slice(1);
+  const base = p ? "https://wa.me/" + p : "https://wa.me/";
+  return base + "?text=" + encodeURIComponent(text);
+}
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(
+      () => true,
+      () => fallbackCopy(text)
+    );
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+function fallbackCopy(text) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/* ---------------- Onboarding wizard ---------------- */
+function Onboarding({ onFinish, onDemo }) {
+  const [step, setStep] = useState(0);
+  const [draft, setDraft] = useState(blankState());
+  const [fxName, setFxName] = useState("");
+  const [fxAmt, setFxAmt] = useState("");
+  const [posName, setPosName] = useState("");
+  const [posPay, setPosPay] = useState("");
+  const [wkName, setWkName] = useState("");
+  const [wkUnits, setWkUnits] = useState("");
+  const [wkPhone, setWkPhone] = useState("");
+  const [wkDebt, setWkDebt] = useState("");
+  const [wkPos, setWkPos] = useState(null);
+  const [pinFirst, setPinFirst] = useState(null);
+  const [pinErr, setPinErr] = useState("");
+
+  const setCo = (k, v) => setDraft((d) => ({ ...d, company: { ...d.company, [k]: v } }));
+  const setSe = (k, v) => setDraft((d) => ({ ...d, season: { ...d.season, [k]: v } }));
+
+  const addFixed = () => {
+    if (!fxName.trim() || !Number(fxAmt)) return;
+    setDraft((d) => ({
+      ...d,
+      season: {
+        ...d.season,
+        fixed: [...d.season.fixed, { id: uid(), name: fxName.trim(), amount: Number(fxAmt) }],
+      },
+    }));
+    setFxName("");
+    setFxAmt("");
+  };
+  const addPosition = () => {
+    if (!posName.trim() || !Number(posPay)) return;
+    setDraft((d) => ({
+      ...d,
+      positions: [...d.positions, { id: uid(), name: posName.trim(), pay: Number(posPay) }],
+    }));
+    setPosName("");
+    setPosPay("");
+  };
+  const addWorker = () => {
+    if (!wkName.trim() || !Number(wkUnits)) return;
+    setDraft((d) => ({
+      ...d,
+      workers: [
+        ...d.workers,
+        {
+          id: uid(),
+          name: wkName.trim(),
+          phone: wkPhone.trim(),
+          units: Number(wkUnits),
+          positionId: wkPos,
+          carriedDebt: Number(wkDebt) || 0,
+          loans: [],
+          payments: [],
+          adjustments: [],
+        },
+      ],
+    }));
+    setWkName("");
+    setWkUnits("");
+    setWkPhone("");
+    setWkDebt("");
+    setWkPos(null);
+  };
+
+  const header = (t, s, n) => (
+    <div style={{ marginBottom: 16 }}>
+      {n && (
+        <div style={{ fontSize: 13, fontWeight: 800, color: NAVY, letterSpacing: 1 }}>{n}</div>
+      )}
+      <div style={{ fontSize: 23, fontWeight: 800, color: INK, marginTop: 4 }}>{t}</div>
+      {s && <div style={{ fontSize: 15, color: "#5A6675", marginTop: 4 }}>{s}</div>}
+    </div>
+  );
+
+  if (step === 0)
+    return (
+      <div style={{ padding: 26, textAlign: "center" }}>
+        <div
+          style={{
+            width: 76,
+            height: 76,
+            borderRadius: 22,
+            background: NAVY,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "30px auto 16px",
+          }}
+        >
+          <Anchor size={38} color="#fff" strokeWidth={2.2} />
+        </div>
+        <div style={{ fontSize: 30, fontWeight: 900, color: NAVY }}>VaultStack</div>
+        <div style={{ fontSize: 16, color: "#5A6675", margin: "8px 0 30px" }}>
+          Your fishing money, kept safe and clear.
+        </div>
+        <Btn label="Set up my company" onClick={() => setStep(1)} />
+        <div style={{ height: 12 }} />
+        <Btn label="Load demo data (PIN: 1234)" kind="ghost" onClick={onDemo} />
+      </div>
+    );
+
+  if (step === 7)
+    return (
+      <PinPad
+        title={pinFirst ? "Enter PIN again" : "Set a 4-number PIN"}
+        subtitle={
+          pinFirst
+            ? "Type the same PIN one more time."
+            : "Only you will open this app. Worker debts stay private."
+        }
+        errorMsg={pinErr}
+        onComplete={(d) => {
+          if (!pinFirst) {
+            setPinFirst(d);
+            setPinErr("");
+          } else if (d === pinFirst) {
+            onFinish({ ...draft, pin: d, setupDone: true });
+          } else {
+            setPinFirst(null);
+            setPinErr("PINs did not match. Start again.");
+          }
+        }}
+      />
+    );
+
+  return (
+    <div style={{ padding: 20 }}>
+      {step === 1 && (
+        <div>
+          {header("Your company", "Tell us about your business.", "STEP 1 OF 6")}
+          <Field label="Company name" value={draft.company.name} onChange={(v) => setCo("name", v)} placeholder="e.g. Selasi Fishing Co." />
+          <Field label="Owner name" value={draft.company.owner} onChange={(v) => setCo("owner", v)} placeholder="Your name" />
+          <Field label="Phone number" value={draft.company.phone} onChange={(v) => setCo("phone", v)} inputMode="tel" placeholder="024 000 0000" />
+          <Btn label="Next" onClick={() => setStep(2)} disabled={!draft.company.name.trim()} />
+        </div>
+      )}
+      {step === 2 && (
+        <div>
+          {header("Owner's split", "After expenses and positions, how is the pot divided?", "STEP 2 OF 6")}
+          <Card pad={14} style={{ background: MIST, border: "none" }}>
+            <div style={{ fontSize: 14.5, color: "#3D4754" }}>
+              The owner keeps this share for maintenance. The rest is shared among workers by units.
+              Most companies use 50.
+            </div>
+          </Card>
+          <Field
+            label="Owner's share of the pot (%)"
+            value={String(draft.company.ownerSplit)}
+            onChange={(v) => setCo("ownerSplit", v.replace(/[^\d.]/g, ""))}
+            inputMode="decimal"
+          />
+          <div style={{ fontSize: 14, color: "#5A6675", marginBottom: 14 }}>
+            Workers share the remaining {100 - (Number(draft.company.ownerSplit) || 0)}%.
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(1)} />
+            <Btn label="Next" onClick={() => setStep(3)} disabled={!(Number(draft.company.ownerSplit) >= 0 && Number(draft.company.ownerSplit) <= 100)} />
+          </div>
+        </div>
+      )}
+      {step === 3 && (
+        <div>
+          {header("Positions", "Roles that earn standing pay each season (optional).", "STEP 3 OF 6")}
+          {draft.positions.map((p) => (
+            <Card key={p.id} pad={12}>
+              <Row left={p.name} right={fmt(p.pay) + " / season"} />
+            </Card>
+          ))}
+          <Field label="Position name" value={posName} onChange={setPosName} placeholder="e.g. Bosun" />
+          <Field label="Pay per season (GH₵)" value={posPay} onChange={(v) => setPosPay(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
+          <Btn label="+ Add position" kind="ghost" onClick={addPosition} />
+          <div style={{ height: 12 }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(2)} />
+            <Btn label="Next" onClick={() => setStep(4)} />
+          </div>
+        </div>
+      )}
+      {step === 4 && (
+        <div>
+          {header("Fixed expenses", "Costs for the whole season, paid before sharing.", "STEP 4 OF 6")}
+          {draft.season.fixed.map((f) => (
+            <Card key={f.id} pad={12}>
+              <Row left={f.name} right={fmt(f.amount)} />
+            </Card>
+          ))}
+          <Field label="Expense name" value={fxName} onChange={setFxName} placeholder="e.g. Net repairs" />
+          <Field label="Amount (GH₵)" value={fxAmt} onChange={(v) => setFxAmt(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
+          <Btn label="+ Add expense" kind="ghost" onClick={addFixed} />
+          <div style={{ height: 12 }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(3)} />
+            <Btn label="Next" onClick={() => setStep(5)} />
+          </div>
+        </div>
+      )}
+      {step === 5 && (
+        <div>
+          {header("Workers & shares", "Assign units and a position if they hold one.", "STEP 5 OF 6")}
+          {draft.workers.map((w) => {
+            const p = draft.positions.find((x) => x.id === w.positionId);
+            return (
+              <Card key={w.id} pad={12}>
+                <Row
+                  left={w.name + (p ? " · " + p.name : "")}
+                  right={w.units + " units" + (w.carriedDebt ? " · owes " + fmt(w.carriedDebt) : "")}
+                />
+              </Card>
+            );
+          })}
+          <Field label="Worker name" value={wkName} onChange={setWkName} placeholder="e.g. Kofi" />
+          <Field label="Share units" value={wkUnits} onChange={(v) => setWkUnits(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
+          <Field label="Phone (for WhatsApp statements)" value={wkPhone} onChange={setWkPhone} inputMode="tel" placeholder="Optional" />
+          <Field label="Debt from last season (GH₵)" value={wkDebt} onChange={(v) => setWkDebt(v.replace(/[^\d.]/g, ""))} inputMode="decimal" placeholder="0" />
+          {draft.positions.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 6 }}>Position (optional)</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <button
+                  onClick={() => setWkPos(null)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    border: "2px solid " + (wkPos === null ? NAVY : LINE),
+                    background: wkPos === null ? "#E8EEF7" : "#fff",
+                    fontWeight: 700,
+                    fontSize: 14.5,
+                    color: INK,
+                    cursor: "pointer",
+                  }}
+                >
+                  None
+                </button>
+                {draft.positions.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setWkPos(p.id)}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: "2px solid " + (wkPos === p.id ? NAVY : LINE),
+                      background: wkPos === p.id ? "#E8EEF7" : "#fff",
+                      fontWeight: 700,
+                      fontSize: 14.5,
+                      color: INK,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <Btn label="+ Add worker" kind="ghost" onClick={addWorker} />
+          <div style={{ height: 12 }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(4)} />
+            <Btn label="Next" onClick={() => setStep(6)} disabled={draft.workers.length === 0} />
+          </div>
+        </div>
+      )}
+      {step === 6 && (
+        <div>
+          {header("Season start", "When does this season begin?", "STEP 6 OF 6")}
+          <Field label="Season name" value={draft.season.name} onChange={(v) => setSe("name", v)} placeholder="e.g. Major Season 2026" />
+          <Field label="Start date" type="date" value={draft.season.start} onChange={(v) => setSe("start", v)} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(5)} />
+            <Btn label="Next: set PIN" onClick={() => setStep(7)} disabled={!draft.season.name.trim()} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Home tab ---------------- */
+function HomeTab({ state, fin, openSale, openExpense }) {
+  return (
+    <div>
+      <Card style={{ background: NAVY, border: "none", color: "#fff" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, opacity: 0.85, letterSpacing: 1 }}>
+          {state.season.name.toUpperCase()} · STARTED {fmtDate(state.season.start).toUpperCase()}
+        </div>
+        <div style={{ fontSize: 14, opacity: 0.85, marginTop: 14 }}>Money in the pot (net)</div>
+        <div style={{ fontSize: 34, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>
+          {fmt(fin.netPot)}
+        </div>
+      </Card>
+
+      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+        <Btn label={<><Plus size={20} /> Log sale</>} onClick={openSale} />
+        <Btn label={<><Minus size={20} /> Log expense</>} kind="ghost" onClick={openExpense} />
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- History tab (totals + day-grouped log) ---------------- */
+function HistoryTab({ state, fin, openSale, openExpense, removeSale, removeExpense, toast }) {
+  const [del, setDel] = useState(null);
+
+  const fmtTime = (iso) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const grouped = useMemo(() => {
+    const s = state.sales.map((x) => ({ ...x, kind: "sale" }));
+    const e = state.expenses.map((x) => ({ ...x, kind: "expense" }));
+    const byDate = {};
+    [...s, ...e].forEach((item) => {
+      (byDate[item.date] = byDate[item.date] || []).push(item);
+    });
+    const dates = Object.keys(byDate).sort((a, b) => (a < b ? 1 : -1));
+    dates.forEach((d) => {
+      byDate[d].sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+    });
+    return { dates, byDate };
+  }, [state.sales, state.expenses]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+        <Btn label={<><Plus size={20} /> Log sale</>} onClick={openSale} />
+        <Btn label={<><Minus size={20} /> Log expense</>} kind="ghost" onClick={openExpense} />
+      </div>
+
+      <Card>
+        <Row left="Total fish sales" right={fmt(fin.grossSales)} />
+        <Row left="Fixed expenses" right={"− " + fmt(fin.fixedTotal)} />
+        <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
+        <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+        <Row left="Net pot" right={fmt(fin.netPot)} strong />
+        {fin.positionsTotal > 0 && fin.beforeSplit && (
+          <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
+        )}
+        <Row left="Pot to split" right={fmt(fin.potForSplit)} strong color={NAVY} />
+      </Card>
+
+      {fin.positionsTotal > 0 && fin.beforeSplit && (
+        <Card style={{ background: "#FFF8E6", border: "1px solid #F0D98A" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <Info size={20} color={WARN} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ fontSize: 13.5, color: "#6B4E00" }}>
+              <b>Confirm with owner:</b> position pay is being taken off the whole pot before the split,
+              so the owner's half also helps fund it. If positions should come only from the workers'
+              half instead, this needs to change.
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <div style={{ fontSize: 13, fontWeight: 800, color: NAVY, letterSpacing: 0.5, marginBottom: 4 }}>
+          THE SPLIT
+        </div>
+        <Row left={"Owner's half (" + fin.ownerPct + "%)"} right={fmt(fin.ownerHalf)} />
+        <Row
+          left={"Workers' half (" + (100 - fin.ownerPct) + "%)"}
+          right={fmt(fin.workersHalf)}
+          strong
+          color={GOOD}
+        />
+        <div style={{ fontSize: 13, color: "#8A94A3", marginTop: 4 }}>
+          Workers' half ÷ {fin.totalUnits} units = {fmt(fin.vpu)} per unit
+        </div>
+      </Card>
+
+      {fin.netPot < 0 && (
+        <Card style={{ borderColor: BAD }}>
+          <div style={{ color: BAD, fontWeight: 700, fontSize: 15 }}>
+            Expenses are bigger than sales right now. Shares are worth GH₵ 0 until the pot recovers.
+          </div>
+        </Card>
+      )}
+
+      <div style={{ fontSize: 15, fontWeight: 800, color: NAVY, margin: "16px 0 2px" }}>History</div>
+      <div style={{ fontSize: 13, color: "#8A94A3", marginBottom: 8 }}>Tap an entry to remove it.</div>
+
+      {grouped.dates.length === 0 && (
+        <Card>
+          <div style={{ color: "#5A6675", fontSize: 15 }}>
+            Nothing logged yet. Tap "Log sale" after you sell fish.
+          </div>
+        </Card>
+      )}
+
+      {grouped.dates.map((d) => (
+        <div key={d} style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#5A6675", letterSpacing: 0.5, marginBottom: 6 }}>
+            {fmtDate(d)}
+          </div>
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {grouped.byDate[d].map((h, i) => {
+              const HIcon = h.kind === "sale" ? Fish : catIcon(h.category);
+              return (
+                <div
+                  key={h.id}
+                  onClick={() => setDel(h)}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "13px 16px",
+                    cursor: "pointer",
+                    borderBottom: i < grouped.byDate[d].length - 1 ? "1px solid " + LINE : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        background: h.kind === "sale" ? "#E6F4EA" : MIST,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <HIcon size={20} color={h.kind === "sale" ? GOOD : NAVY} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 16 }}>
+                        {h.kind === "sale" ? "Fish sale" : h.category || "Expense"}
+                      </div>
+                      <div style={{ fontSize: 13, color: "#5A6675" }}>
+                        {fmtTime(h.createdAt)}
+                        {h.note ? " · " + h.note : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 17,
+                      color: h.kind === "sale" ? GOOD : BAD,
+                      fontVariantNumeric: "tabular-nums",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {h.kind === "sale" ? "+" : "−"} {fmt(h.amount)}
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+        </div>
+      ))}
+
+      {del && (
+        <ConfirmRemove
+          title={(del.kind === "sale" ? "Fish sale" : del.category || "Expense") + " · " + fmt(del.amount)}
+          lines={[fmtDate(del.date) + (del.note ? " · " + del.note : "")]}
+          onClose={() => setDel(null)}
+          onConfirm={() => {
+            if (del.kind === "sale") removeSale(del.id);
+            else removeExpense(del.id);
+            setDel(null);
+            toast("Entry removed");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Workers tab ---------------- */
+function WorkersTab({
+  state,
+  fin,
+  addLoan,
+  addPayment,
+  addAdjustment,
+  removeLoan,
+  removePayment,
+  removeAdjustment,
+  toast,
+}) {
+  const [openId, setOpenId] = useState(null);
+  const [sub, setSub] = useState(null);
+  const [payDesc, setPayDesc] = useState("");
+  const [goodsOther, setGoodsOther] = useState("");
+  const [adjKind, setAdjKind] = useState("deduction");
+  const [adjReason, setAdjReason] = useState("");
+  const [adjOther, setAdjOther] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [del, setDel] = useState(null);
+
+  const w = state.workers.find((x) => x.id === openId) || null;
+  const n = w ? workerNumbers(state, w, fin) : null;
+  const posName = w && w.positionId
+    ? (state.positions.find((p) => p.id === w.positionId) || {}).name
+    : null;
+
+  const histRows = w
+    ? [
+        ...w.loans.map((l) => ({ ...l, k: "loan" })),
+        ...w.payments.map((p) => ({ ...p, k: "pay" })),
+        ...w.adjustments.map((a) => ({ ...a, k: "adj" })),
+      ].sort((a, b) => (a.date < b.date ? 1 : -1))
+    : [];
+
+  const histLabel = (h) => {
+    if (h.k === "loan") return "Loan";
+    if (h.k === "pay") return h.desc || "Payment";
+    return (h.kind === "bonus" ? "Bonus" : "Deduction") + (h.reason ? " · " + h.reason : "");
+  };
+  const histAmount = (h) =>
+    h.k === "adj" && h.kind === "bonus" ? "+ " + fmt(h.amount) : "− " + fmt(h.amount);
+
+  return (
+    <div>
+      {state.workers.map((wk) => {
+        const k = workerNumbers(state, wk, fin);
+        const pn = wk.positionId
+          ? (state.positions.find((p) => p.id === wk.positionId) || {}).name
+          : null;
+        const tone = k.payout < 0 ? "bad" : k.loansTotal + k.carried > k.grossShare * 0.7 ? "warn" : "good";
+        return (
+          <Card key={wk.id} pad={14} style={{ cursor: "pointer" }}>
+            <div onClick={() => { setOpenId(wk.id); setSub(null); setCopied(false); }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontWeight: 900, fontSize: 17, display: "flex", alignItems: "center", gap: 7 }}>
+                  {wk.name}
+                  {pn && <Star size={15} color={WARN} fill={WARN} />}
+                </div>
+                <Pill text={pn ? pn : wk.units + " units"} tone={pn ? "warn" : "navy"} />
+              </div>
+              <Row left="Share so far" right={fmt(k.grossShare)} />
+              <Row left="Will take home" right={fmt(k.payout)} strong color={k.payout < 0 ? BAD : GOOD} />
+              <Row left="Can still borrow" right={fmt(k.borrowLimit)} />
+              <div style={{ marginTop: 6 }}>
+                <Pill
+                  text={k.payout < 0 ? "In debt — carries over" : tone === "warn" ? "Borrowing high" : "Healthy"}
+                  tone={tone}
+                />
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+
+      {w && sub === null && (
+        <Modal title={w.name + (posName ? " · " + posName : "")} onClose={() => setOpenId(null)}>
+          <Card pad={14} style={{ background: MIST, border: "none" }}>
+            <Row left={"Share from units (" + w.units + " × " + fmt(fin.vpu) + ")"} right={fmt(n.unitShare)} />
+            {n.posPay > 0 && <Row left={"Position pay (" + posName + ")"} right={"+ " + fmt(n.posPay)} />}
+            <Row left="Bonuses" right={"+ " + fmt(n.bonusTotal)} />
+            <Row left="Deductions" right={"− " + fmt(n.dedTotal)} />
+            <Row left="Loans this season" right={"− " + fmt(n.loansTotal)} />
+            <Row left="Payments received" right={"− " + fmt(n.paymentsTotal)} />
+            <Row left="Debt from last season" right={"− " + fmt(n.carried)} />
+            <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+            <Row left="Payout so far" right={fmt(n.payout)} strong color={n.payout < 0 ? BAD : GOOD} />
+            <Row left="Can still borrow" right={fmt(n.borrowLimit)} />
+          </Card>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            <Btn label="Give loan" kind="ghost" onClick={() => setSub("loan")} />
+            <Btn label="Record payment" kind="ghost" onClick={() => setSub("pay-type")} />
+          </div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+            <Btn
+              label={<><Plus size={18} /> Bonus</>}
+              kind="ghost"
+              onClick={() => { setAdjKind("bonus"); setAdjReason(""); setAdjOther(""); setSub("adj-reason"); }}
+            />
+            <Btn
+              label={<><Minus size={18} /> Deduct</>}
+              kind="ghost"
+              onClick={() => { setAdjKind("deduction"); setAdjReason(""); setAdjOther(""); setSub("adj-reason"); }}
+            />
+          </div>
+          <Btn label={<><MessageCircle size={20} /> Send statement</>} onClick={() => setSub("statement")} />
+          {histRows.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>History</div>
+              <div style={{ fontSize: 13, color: "#8A94A3", marginBottom: 4 }}>Tap an entry to remove it.</div>
+              {histRows.map((h) => (
+                <div
+                  key={h.id}
+                  onClick={() => setDel(h)}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    padding: "8px 0",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontSize: 15.5, color: "#4A5568" }}>
+                    {histLabel(h)} · {fmtDate(h.date)}
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontVariantNumeric: "tabular-nums",
+                      color: h.k === "adj" && h.kind === "bonus" ? GOOD : INK,
+                    }}
+                  >
+                    {histAmount(h)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {w && sub === "loan" && (
+        <KeypadSheet
+          title={"Loan for " + w.name}
+          HeaderIcon={Banknote}
+          subtitle={"Can borrow up to " + fmt(n.borrowLimit)}
+          quick={[50, 100, 200]}
+          maxAmount={n.borrowLimit}
+          maxMsg="More than the borrowing limit."
+          confirmLabel="Save loan"
+          onClose={() => setSub(null)}
+          onSave={({ amount, date }) => {
+            addLoan(w.id, { id: uid(), date, amount, note: "" });
+            setSub(null);
+            toast("Loan saved · " + fmt(amount));
+          }}
+        />
+      )}
+
+      {w && sub === "pay-type" && (
+        <Modal title={"Payment to " + w.name} onClose={() => setSub(null)}>
+          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>What did {w.name} receive?</div>
+          <Btn label={<><Banknote size={20} /> Cash</>} onClick={() => { setPayDesc("Cash"); setSub("pay-amt"); }} />
+          <div style={{ height: 10 }} />
+          <Btn label={<><Package size={20} /> Goods</>} kind="ghost" onClick={() => { setGoodsOther(""); setSub("pay-goods"); }} />
+        </Modal>
+      )}
+
+      {w && sub === "pay-goods" && (
+        <Modal title="What goods?" onClose={() => setSub("pay-type")}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            {GOODS_PRESETS.map((g) => (
+              <button
+                key={g}
+                onClick={() => { setPayDesc(g); setSub("pay-amt"); }}
+                style={{
+                  padding: "16px 8px",
+                  borderRadius: 14,
+                  border: "2px solid " + LINE,
+                  background: "#fff",
+                  fontWeight: 800,
+                  fontSize: 15.5,
+                  color: INK,
+                  cursor: "pointer",
+                }}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+          <Field label="Or type something else" value={goodsOther} onChange={setGoodsOther} placeholder="e.g. Outboard oil" />
+          <Btn label="Next" disabled={!goodsOther.trim()} onClick={() => { setPayDesc(goodsOther.trim()); setSub("pay-amt"); }} />
+        </Modal>
+      )}
+
+      {w && sub === "pay-amt" && (
+        <KeypadSheet
+          title={"Payment to " + w.name}
+          HeaderIcon={payDesc === "Cash" ? Banknote : Package}
+          subtitle={payDesc === "Cash" ? "Cash payment" : payDesc + " — agreed value"}
+          quick={[20, 50, 100]}
+          confirmLabel="Save payment"
+          onClose={() => setSub("pay-type")}
+          onSave={({ amount, date }) => {
+            addPayment(w.id, {
+              id: uid(),
+              date,
+              type: payDesc === "Cash" ? "cash" : "goods",
+              amount,
+              desc: payDesc,
+            });
+            setSub(null);
+            toast("Payment saved · " + fmt(amount));
+          }}
+        />
+      )}
+
+      {w && sub === "adj-reason" && (
+        <Modal title={adjKind === "bonus" ? "Bonus for " + w.name : "Deduction for " + w.name} onClose={() => setSub(null)}>
+          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>
+            {adjKind === "bonus" ? "Why the bonus?" : "Why the deduction?"}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            {(adjKind === "bonus" ? BONUS_REASONS : DEDUCT_REASONS).map((r) => (
+              <button
+                key={r}
+                onClick={() => { setAdjReason(r); setSub("adj-amt"); }}
+                style={{
+                  padding: "16px 8px",
+                  borderRadius: 14,
+                  border: "2px solid " + LINE,
+                  background: "#fff",
+                  fontWeight: 800,
+                  fontSize: 15.5,
+                  color: INK,
+                  cursor: "pointer",
+                }}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <Field label="Or type another reason" value={adjOther} onChange={setAdjOther} placeholder="e.g. Helped repair engine" />
+          <Btn label="Next" disabled={!adjOther.trim()} onClick={() => { setAdjReason(adjOther.trim()); setSub("adj-amt"); }} />
+        </Modal>
+      )}
+
+      {w && sub === "adj-amt" && (
+        <KeypadSheet
+          title={(adjKind === "bonus" ? "Bonus: " : "Deduction: ") + adjReason}
+          HeaderIcon={adjKind === "bonus" ? Plus : Minus}
+          subtitle={adjKind === "bonus" ? "Extra money for " + w.name : "Money removed from " + w.name + "'s payout"}
+          quick={[20, 50, 100]}
+          confirmLabel={adjKind === "bonus" ? "Save bonus" : "Save deduction"}
+          onClose={() => setSub("adj-reason")}
+          onSave={({ amount, date }) => {
+            addAdjustment(w.id, { id: uid(), date, kind: adjKind, amount, reason: adjReason });
+            setSub(null);
+            toast((adjKind === "bonus" ? "Bonus saved · " : "Deduction saved · ") + fmt(amount));
+          }}
+        />
+      )}
+
+      {w && sub === "statement" && (
+        <Modal title={"Statement for " + w.name} onClose={() => setSub(null)}>
+          <pre
+            style={{
+              background: MIST,
+              borderRadius: 12,
+              padding: 14,
+              fontSize: 13.5,
+              whiteSpace: "pre-wrap",
+              fontFamily: "ui-monospace, Menlo, monospace",
+              color: INK,
+            }}
+          >
+            {buildStatement(state, fin, w)}
+          </pre>
+          <a
+            href={waLink(w.phone, buildStatement(state, fin, w))}
+            target="_blank"
+            rel="noreferrer"
+            style={{ textDecoration: "none", display: "block", marginBottom: 10 }}
+          >
+            <Btn label={<><MessageCircle size={20} /> Share on WhatsApp</>} onClick={() => {}} />
+          </a>
+          <Btn
+            label={copied ? <><Check size={20} /> Copied</> : <><Copy size={20} /> Copy text</>}
+            kind="ghost"
+            onClick={() => copyText(buildStatement(state, fin, w)).then(() => setCopied(true))}
+          />
+        </Modal>
+      )}
+
+      {w && del && (
+        <ConfirmRemove
+          title={histLabel(del) + " · " + fmt(del.amount)}
+          lines={[fmtDate(del.date)]}
+          onClose={() => setDel(null)}
+          onConfirm={() => {
+            if (del.k === "loan") removeLoan(w.id, del.id);
+            else if (del.k === "pay") removePayment(w.id, del.id);
+            else removeAdjustment(w.id, del.id);
+            setDel(null);
+            toast("Entry removed");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Weather tab ---------------- */
+function WeatherTab() {
+  const [wx, setWx] = useState({ status: "loading" });
+  useEffect(() => {
+    let alive = true;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    (async () => {
+      try {
+        const [mr, fr] = await Promise.all([
+          fetch(
+            "https://marine-api.open-meteo.com/v1/marine?latitude=5.9042&longitude=0.5847&current=wave_height",
+            { signal: ctrl.signal }
+          ),
+          fetch(
+            "https://api.open-meteo.com/v1/forecast?latitude=5.9042&longitude=0.5847&current=wind_speed_10m,precipitation&wind_speed_unit=kmh",
+            { signal: ctrl.signal }
+          ),
+        ]);
+        const mj = await mr.json();
+        const fj = await fr.json();
+        if (!alive) return;
+        setWx({
+          status: "live",
+          wave: mj.current?.wave_height ?? 0,
+          wind: fj.current?.wind_speed_10m ?? 0,
+          rain: fj.current?.precipitation ?? 0,
+        });
+      } catch {
+        if (!alive) return;
+        setWx({ status: "demo", wave: 0.9, wind: 14, rain: 0 });
+      } finally {
+        clearTimeout(t);
+      }
+    })();
+    return () => {
+      alive = false;
+      ctrl.abort();
+      clearTimeout(t);
+    };
+  }, []);
+
+  if (wx.status === "loading")
+    return (
+      <Card>
+        <div style={{ color: "#5A6675", fontSize: 15 }}>Checking the sea at Adina…</div>
+      </Card>
+    );
+
+  const verdict =
+    wx.wave >= 2 || wx.wind >= 30
+      ? { label: "STAY ASHORE", tone: "bad", msg: "The sea is dangerous today. Do not go out." }
+      : wx.wave >= 1.2 || wx.wind >= 20 || wx.rain >= 2
+      ? { label: "CAUTION", tone: "warn", msg: "Conditions are rough. Go carefully or wait." }
+      : { label: "SAFE", tone: "good", msg: "Good conditions for fishing today." };
+  const vcol = { good: GOOD, warn: WARN, bad: BAD }[verdict.tone];
+
+  return (
+    <div>
+      <Card style={{ borderLeft: "6px solid " + vcol }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#5A6675", letterSpacing: 1 }}>
+          ADINA, VOLTA REGION — NOW
+        </div>
+        <div style={{ fontSize: 32, fontWeight: 900, color: vcol, margin: "6px 0" }}>{verdict.label}</div>
+        <div style={{ fontSize: 16, color: INK }}>{verdict.msg}</div>
+      </Card>
+      <Card>
+        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Wind size={18} color={NAVY} /> Wind</span>} right={wx.wind + " km/h"} />
+        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Waves size={18} color={NAVY} /> Waves</span>} right={wx.wave + " m"} />
+        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><CloudRain size={18} color={NAVY} /> Rain</span>} right={wx.rain + " mm"} />
+      </Card>
+      {wx.status === "demo" && (
+        <Card style={{ background: MIST, border: "none" }}>
+          <div style={{ fontSize: 14, color: "#5A6675" }}>
+            <b>Offline.</b> Showing saved demo conditions — the app keeps working without network. Live
+            data returns when connection is back.
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- More tab ---------------- */
+function MoreTab({ state, fin, onCloseSeason, onReset }) {
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div>
+      <Card>
+        <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 4 }}>{state.company.name}</div>
+        <div style={{ fontSize: 14.5, color: "#5A6675" }}>
+          Owner: {state.company.owner || "—"} · Owner's split: {state.company.ownerSplit}%
+        </div>
+        <div style={{ fontSize: 14.5, color: "#5A6675" }}>
+          Season: {state.season.name} · {state.workers.length} workers · {fin.totalUnits} units
+        </div>
+        <div style={{ fontSize: 14.5, color: "#5A6675" }}>
+          Expense types: {state.expenseCats.join(", ")}
+        </div>
+      </Card>
+
+      {state.positions.length > 0 && (
+        <Card>
+          <div style={{ fontWeight: 800, fontSize: 15, color: NAVY, marginBottom: 6 }}>Positions</div>
+          {state.positions.map((p) => {
+            const holders = state.workers.filter((w) => w.positionId === p.id).map((w) => w.name);
+            return (
+              <Row
+                key={p.id}
+                left={p.name + (holders.length ? " · " + holders.join(", ") : " · unassigned")}
+                right={fmt(p.pay) + " / season"}
+              />
+            );
+          })}
+        </Card>
+      )}
+
+      {state.pastSeasons.length > 0 && (
+        <Card>
+          <div style={{ fontWeight: 800, fontSize: 15, color: NAVY, marginBottom: 6 }}>Past seasons</div>
+          {state.pastSeasons.map((p, i) => (
+            <Row key={i} left={p.name} right={"Net pot " + fmt(p.netPot)} />
+          ))}
+        </Card>
+      )}
+      <Btn label="Close this season" kind="danger" onClick={() => setConfirm(true)} />
+      <div style={{ height: 10 }} />
+      <Btn label="Reset demo (erase all data)" kind="quiet" onClick={onReset} />
+
+      {confirm && (
+        <Modal title="Close the season?" onClose={() => setConfirm(false)}>
+          <div style={{ fontSize: 15, color: "#3D4754", marginBottom: 12 }}>
+            Final payouts will be locked. Any worker debt carries to the next season automatically.
+          </div>
+          <Card pad={12} style={{ background: MIST, border: "none" }}>
+            {state.workers.map((w) => {
+              const k = workerNumbers(state, w, fin);
+              return (
+                <Row
+                  key={w.id}
+                  left={w.name}
+                  right={k.payout < 0 ? "Carries debt " + fmt(-k.payout) : "Take home " + fmt(k.payout)}
+                  color={k.payout < 0 ? BAD : INK}
+                />
+              );
+            })}
+            <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+            <Row left="Owner's half" right={fmt(fin.ownerHalf)} strong />
+          </Card>
+          <Btn
+            label="Yes, close season"
+            onClick={() => {
+              setConfirm(false);
+              onCloseSeason();
+            }}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- App shell ---------------- */
+function VaultStack() {
+  const [state, setState] = useState(null);
+  const [locked, setLocked] = useState(false);
+  const [pinErr, setPinErr] = useState("");
+  const [tab, setTab] = useState("home");
+  const [flow, setFlow] = useState(null);
+  const [expCat, setExpCat] = useState(null);
+  const [expSession, setExpSession] = useState([]);
+  const [newCatName, setNewCatName] = useState("");
+  const [toastMsg, setToastMsg] = useState(null);
+  const [saveStamp, setSaveStamp] = useState(null);
+  const saveTimer = useRef(null);
+  const toastTimer = useRef(null);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    (async () => {
+      const saved = normalizeState(await loadSaved());
+      if (saved && saved.setupDone) {
+        setState(saved);
+        setLocked(Boolean(saved.pin));
+      } else {
+        setState(saved || blankState());
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (state === null) return;
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveStamp("saving");
+    saveTimer.current = setTimeout(async () => {
+      const ok = await persist(state);
+      setSaveStamp(ok ? new Date() : "error");
+    }, 450);
+    return () => saveTimer.current && clearTimeout(saveTimer.current);
+  }, [state]);
+
+  const toast = (msg) => {
+    setToastMsg(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMsg(null), 2000);
+  };
+
+  const fin = useMemo(() => (state ? computeFinancials(state) : null), [state]);
+
+  if (state === null)
+    return (
+      <div style={{ fontFamily: baseFont, padding: 40, textAlign: "center", color: "#5A6675" }}>
+        Opening VaultStack…
+      </div>
+    );
+
+  const addSale = (s) => setState((st) => ({ ...st, sales: [...st.sales, s] }));
+  const addExpense = (e) => setState((st) => ({ ...st, expenses: [...st.expenses, e] }));
+  const removeSale = (id) => setState((st) => ({ ...st, sales: st.sales.filter((x) => x.id !== id) }));
+  const removeExpense = (id) => setState((st) => ({ ...st, expenses: st.expenses.filter((x) => x.id !== id) }));
+  const addLoan = (wid, loan) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: [...w.loans, loan] } : w)),
+    }));
+  const addPayment = (wid, pay) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: [...w.payments, pay] } : w)),
+    }));
+  const addAdjustment = (wid, adj) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: [...w.adjustments, adj] } : w)),
+    }));
+  const removeLoan = (wid, id) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: w.loans.filter((x) => x.id !== id) } : w)),
+    }));
+  const removePayment = (wid, id) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: w.payments.filter((x) => x.id !== id) } : w)),
+    }));
+  const removeAdjustment = (wid, id) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: w.adjustments.filter((x) => x.id !== id) } : w)),
+    }));
+  const resolveCategory = (raw) => {
+    const name = raw.trim();
+    const existing = state.expenseCats.find((c) => c.toLowerCase() === name.toLowerCase());
+    if (existing) return existing;
+    setState((st) => ({ ...st, expenseCats: [...st.expenseCats, name] }));
+    return name;
+  };
+  const closeSeason = () =>
+    setState((st) => {
+      const f = computeFinancials(st);
+      const settlements = st.workers.map((w) => {
+        const k = workerNumbers(st, w, f);
+        return { name: w.name, payout: k.payout };
+      });
+      const nextYear = new Date().getFullYear();
+      return {
+        ...st,
+        pastSeasons: [
+          ...st.pastSeasons,
+          { name: st.season.name, netPot: f.netPot, ownerHalf: f.ownerHalf, settlements },
+        ],
+        season: { ...st.season, name: "New Season " + nextYear, start: todayISO() },
+        sales: [],
+        expenses: [],
+        workers: st.workers.map((w) => {
+          const k = workerNumbers(st, w, f);
+          return { ...w, carriedDebt: k.payout < 0 ? -k.payout : 0, loans: [], payments: [], adjustments: [] };
+        }),
+      };
+    });
+  const resetAll = async () => {
+    await wipeSaved();
+    firstRender.current = true;
+    setState(blankState());
+    setLocked(false);
+    setTab("home");
+    setFlow(null);
+  };
+
+  const shell = (children) => (
+    <div
+      style={{
+        fontFamily: baseFont,
+        background: MIST,
+        height: "100%",
+        maxWidth: 430,
+        margin: "0 auto",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {children}
+    </div>
+  );
+
+  if (!state.setupDone)
+    return shell(
+      <div style={{ background: "#fff", flex: 1, overflowY: "auto" }}>
+        <Onboarding
+          onFinish={(d) => { setState(d); setTab("home"); }}
+          onDemo={() => { setState(demoState()); setLocked(true); }}
+        />
+      </div>
+    );
+
+  if (locked)
+    return shell(
+      <div style={{ background: "#fff", flex: 1, overflowY: "auto" }}>
+        <PinPad
+          title="Enter your PIN"
+          subtitle={state.company.name}
+          errorMsg={pinErr}
+          onComplete={(d) => {
+            if (d === state.pin) { setLocked(false); setPinErr(""); }
+            else setPinErr("Wrong PIN. Try again.");
+          }}
+        />
+      </div>
+    );
+
+  const tabs = [
+    { id: "home", Icon: Home, label: "Home" },
+    { id: "history", Icon: Banknote, label: "History" },
+    { id: "workers", Icon: Users, label: "Workers" },
+    { id: "weather", Icon: Waves, label: "Weather" },
+    { id: "more", Icon: Settings, label: "More" },
+  ];
+
+  const openSale = () => setFlow("sale");
+  const openExpense = () => { setExpSession([]); setFlow("expense-cat"); };
+
+  const availableCats = state.expenseCats.filter(
+    (c) => !expSession.some((s) => s.cat.toLowerCase() === c.toLowerCase())
+  );
+  const sessionTotal = expSession.reduce((s, x) => s + x.amount, 0);
+
+  return shell(
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      <div
+        style={{
+          background: NAVY,
+          color: "#fff",
+          padding: "14px 18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
+          <Anchor size={20} strokeWidth={2.4} /> VaultStack
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 12, opacity: 0.9 }}>
+            {saveStamp === "saving" ? "Saving…" : saveStamp === "error" ? "Not saved" : "Saved on this phone"}
+          </span>
+          <button
+            onClick={() => setLocked(true)}
+            title="Lock app"
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              border: "none",
+              color: "#fff",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Lock size={14} /> Lock
+          </button>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, padding: 14, overflowY: "auto", minHeight: 0 }}>
+        {tab === "home" && <HomeTab state={state} fin={fin} openSale={openSale} openExpense={openExpense} />}
+        {tab === "history" && (
+          <HistoryTab
+            state={state}
+            fin={fin}
+            openSale={openSale}
+            openExpense={openExpense}
+            removeSale={removeSale}
+            removeExpense={removeExpense}
+            toast={toast}
+          />
+        )}
+        {tab === "workers" && (
+          <WorkersTab
+            state={state}
+            fin={fin}
+            addLoan={addLoan}
+            addPayment={addPayment}
+            addAdjustment={addAdjustment}
+            removeLoan={removeLoan}
+            removePayment={removePayment}
+            removeAdjustment={removeAdjustment}
+            toast={toast}
+          />
+        )}
+        {tab === "weather" && <WeatherTab />}
+        {tab === "more" && <MoreTab state={state} fin={fin} onCloseSeason={closeSeason} onReset={resetAll} />}
+      </div>
+
+      {flow === "sale" && (
+        <KeypadSheet
+          title="Log a fish sale"
+          HeaderIcon={Fish}
+          subtitle="How much money did you receive?"
+          confirmLabel="Save sale"
+          onClose={() => setFlow(null)}
+          onSave={({ amount, date }) => {
+            addSale({ id: uid(), date, amount, note: "", createdAt: new Date().toISOString() });
+            setFlow(null);
+            toast("Sale saved · " + fmt(amount));
+          }}
+        />
+      )}
+
+      {flow === "expense-cat" && (
+        <Modal title="What did you pay for?" onClose={() => setFlow(null)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {availableCats.map((name) => {
+              const Icon = catIcon(name);
+              return (
+                <button
+                  key={name}
+                  onClick={() => { setExpCat(name); setFlow("expense-amt"); }}
+                  style={{
+                    padding: "18px 8px",
+                    borderRadius: 16,
+                    border: "2px solid " + LINE,
+                    background: "#fff",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Icon size={28} color={NAVY} strokeWidth={2.2} />
+                  <span style={{ fontWeight: 800, fontSize: 15, color: INK }}>{name}</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => { setNewCatName(""); setFlow("expense-name"); }}
+              style={{
+                padding: "18px 8px",
+                borderRadius: 16,
+                border: "2px dashed " + NAVY,
+                background: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <Plus size={28} color={NAVY} strokeWidth={2.2} />
+              <span style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>Other</span>
+            </button>
+          </div>
+
+          {expSession.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: NAVY, marginBottom: 4 }}>Logged just now</div>
+              {expSession.map((s, i) => {
+                const SIcon = catIcon(s.cat);
+                return (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 15.5, color: "#4A5568" }}>
+                      <Check size={17} color={GOOD} strokeWidth={3} /> <SIcon size={17} color={NAVY} /> {s.cat}
+                    </span>
+                    <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>− {fmt(s.amount)}</span>
+                  </div>
+                );
+              })}
+              <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+              <Row left="Total this sitting" right={"− " + fmt(sessionTotal)} strong />
+              <div style={{ height: 10 }} />
+              <Btn label={<><Check size={20} /> Done</>} onClick={() => setFlow(null)} />
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {flow === "expense-name" && (
+        <Modal title="Name this expense" onClose={() => setFlow("expense-cat")}>
+          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>
+            Give it a name once. It will be saved as a button for next time.
+          </div>
+          <Field label="What is it called?" value={newCatName} onChange={setNewCatName} placeholder="e.g. Net mending" />
+          <Btn
+            label="Next"
+            disabled={!newCatName.trim()}
+            onClick={() => {
+              const finalName = resolveCategory(newCatName);
+              setExpCat(finalName);
+              setFlow("expense-amt");
+            }}
+          />
+        </Modal>
+      )}
+
+      {flow === "expense-amt" && (
+        <KeypadSheet
+          title={"Expense: " + expCat}
+          HeaderIcon={catIcon(expCat)}
+          subtitle="How much did you pay?"
+          confirmLabel="Save expense"
+          onClose={() => setFlow("expense-cat")}
+          onSave={({ amount, date }) => {
+            addExpense({ id: uid(), date, amount, category: expCat, createdAt: new Date().toISOString() });
+            setExpSession((prev) => [...prev, { cat: expCat, amount }]);
+            toast(expCat + " saved · " + fmt(amount));
+            setFlow("expense-cat");
+          }}
+        />
+      )}
+
+      {toastMsg && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 84,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: INK,
+            color: "#fff",
+            padding: "12px 18px",
+            borderRadius: 999,
+            fontSize: 14.5,
+            fontWeight: 800,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            zIndex: 60,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Check size={18} color="#7BE495" /> {toastMsg}
+        </div>
+      )}
+
+      <div style={{ display: "flex", borderTop: "1px solid " + LINE, background: "#fff", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {tabs.map(({ id, Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => { setTab(id); setFlow(null); }}
+            style={{
+              flex: 1,
+              padding: "10px 0 12px",
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              color: tab === id ? NAVY : "#8A94A3",
+              fontWeight: tab === id ? 900 : 600,
+              fontSize: 12.5,
+              fontFamily: baseFont,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 3,
+            }}
+          >
+            <Icon size={22} strokeWidth={tab === id ? 2.6 : 2} />
+            {label}
+            <div style={{ width: 22, height: 3, background: tab === id ? NAVY : "transparent", borderRadius: 99 }} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<VaultStack />);
+</script>
+</body>
+</html>
