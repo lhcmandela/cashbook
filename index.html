@@ -362,10 +362,20 @@ async function vsHashPin(pin, salt) {
   return salt + hex; /* salt travels with the record so vsVerifyPin can rebuild it */
 }
 async function vsVerifyPin(pin, record) {
-  if (!record) return false;
+  if (!record || typeof record !== "string") return false;
   if (record.startsWith("plain:")) return pin === record.slice(6);
-  const salt = record.slice(0, 16);
-  return (await vsHashPin(pin, salt)) === record;
+  /* records written by older builds: the PIN was stored as plain digits */
+  if (/^\d{4,8}$/.test(record)) return pin === record;
+  /* current format: 16-char salt followed by the salted SHA-256 hash */
+  if (/^[0-9a-f]{80}$/.test(record)) {
+    const salt = record.slice(0, 16);
+    return (await vsHashPin(pin, salt)) === record;
+  }
+  return false;
+}
+/* is this record already stored in the salted format? */
+function vsPinIsSalted(record) {
+  return typeof record === "string" && /^[0-9a-f]{80}$/.test(record);
 }
 
 /* -------- WebAuthn biometric unlock (real platform authenticator) --------
@@ -1378,6 +1388,16 @@ function VaultStackV3() {
             if (await vsVerifyPin(d, state.pin)) {
               setLocked(false);
               setPinErr("");
+              /* quietly upgrade old plain PIN records to the salted format */
+              if (!vsPinIsSalted(state.pin)) {
+                try {
+                  const salt = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+                    .map((b) => b.toString(16).padStart(2, "0"))
+                    .join("");
+                  const record = await vsHashPin(d, salt);
+                  setState((st) => ({ ...st, pin: record }));
+                } catch {}
+              }
             } else {
               setPinErr("Wrong PIN. Try again.");
             }
