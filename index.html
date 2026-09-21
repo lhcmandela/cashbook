@@ -6,7 +6,7 @@
 <title>VaultStack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 :root{
@@ -30,7 +30,7 @@
 html,body{height:100%;margin:0}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{
-  background:#E4EAF1;
+  background:#EDF0F4;
   font-family:"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
@@ -45,11 +45,11 @@ body{
 }
 input,button{font-family:inherit}
 button{-webkit-tap-highlight-color:transparent}
-/* subtle animated shimmer on the hero wave strip */
-@keyframes waveSlide{
-  from{transform:translateX(0)}
-  to{transform:translateX(-50%)}
-}
+/* quiet, practical base styles */
+.no-anim *{animation:none !important;transition:none !important}
+input{-webkit-appearance:none;appearance:none}
+button{touch-action:manipulation}
+::selection{background:#C9D7E8}
 </style>
 </head>
 <body>
@@ -100,16 +100,9 @@ function Star(p){return <IconBase {...p}><polygon points="12 2 15.09 8.26 22 9.2
 function Info(p){return <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></IconBase>;}
 
 /* ============================================================
-   VaultStack — Tier 1 Demo (v6)
-   New payout engine (from real owner research):
-     Net pot
-     − Position pay (off the top, BEFORE split)   [confirm w/ owner]
-     = Splittable pot
-     × ownerSplit%  → Owner's maintenance half (default 50)
-     × (100−ownerSplit)% → Workers' half, divided by share units
-   Per worker: share of workers' half + own position pay
-               − loans − payments − deductions + bonuses − carried debt
-   One company only (multi-company deferred by decision).
+   VaultStack — season money book for Ghanaian fishing crews.
+   Engine: net pot (sales − fixed costs − trip expenses),
+   position pay taken off the top, remainder shared by share units.
    ============================================================ */
 
 const NAVY = "#123B63";
@@ -213,7 +206,7 @@ const POS_BOSUN = "p_bosun";
 const POS_ENGINE = "p_engine";
 
 const demoState = () => ({
-  pin: "1234",
+  pin: "plain:1234", /* legacy demo record, verified by vsVerifyPin */
   setupDone: true,
   company: {
     name: "Selasi Fishing Co.",
@@ -300,44 +293,11 @@ const demoState = () => ({
   pastSeasons: [],
 });
 
-/* ---------------- payout engine (positions + configurable split) ---------------- */
+/* ---------------- payout engine (positions; whole pot shared by units) ---------------- */
 function positionPayFor(state, w) {
   if (!w.positionId) return 0;
   const p = state.positions.find((x) => x.id === w.positionId);
   return p ? Number(p.pay) || 0 : 0;
-}
-function computeFinancials(state) {
-  const grossSales = state.sales.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-  const fixedTotal = state.season.fixed.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-  const varTotal = state.expenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
-  const netPot = grossSales - fixedTotal - varTotal;
-
-  const positionsTotal = state.workers.reduce((s, w) => s + positionPayFor(state, w), 0);
-  const beforeSplit = state.company.positionsBeforeSplit !== false;
-
-  const potForSplit = beforeSplit ? Math.max(0, netPot - positionsTotal) : Math.max(0, netPot);
-
-  const ownerPct = Number(state.company.ownerSplit) || 0;
-  const ownerHalf = (potForSplit * ownerPct) / 100;
-  const workersHalf = potForSplit - ownerHalf;
-
-  const totalUnits = state.workers.reduce((s, w) => s + (Number(w.units) || 0), 0);
-  const vpu = totalUnits > 0 ? workersHalf / totalUnits : 0;
-
-  return {
-    grossSales,
-    fixedTotal,
-    varTotal,
-    netPot,
-    positionsTotal,
-    beforeSplit,
-    potForSplit,
-    ownerPct,
-    ownerHalf,
-    workersHalf,
-    totalUnits,
-    vpu,
-  };
 }
 function workerNumbers(state, w, fin) {
   const unitShare = (Number(w.units) || 0) * fin.vpu;
@@ -382,6 +342,1369 @@ function catIcon(name) {
 const GOODS_PRESETS = ["Bag of rice", "Premix", "Airtime", "Foodstuff"];
 const DEDUCT_REASONS = ["Late", "Absent", "Damaged gear"];
 const BONUS_REASONS = ["Good catch", "Extra work"];
+
+/* ============================================================
+   v8 — practical restyle + WebAuthn biometric unlock + engine
+   simplification (owner's maintenance split removed; the whole
+   net pot is shared by units after fixed costs, trip expenses
+   and position pay). Legacy originals below are bound over and
+   never executed.
+   ============================================================ */
+const MONO2 = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+
+/* -------- password (PIN) storage: salted SHA-256, never plaintext -------- */
+async function vsHashPin(pin, salt) {
+  const data = new TextEncoder().encode(salt + ":" + pin + ":" + salt);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  const hex = Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return salt + hex; /* salt travels with the record so vsVerifyPin can rebuild it */
+}
+async function vsVerifyPin(pin, record) {
+  if (!record) return false;
+  if (record.startsWith("plain:")) return pin === record.slice(6);
+  const salt = record.slice(0, 16);
+  return (await vsHashPin(pin, salt)) === record;
+}
+
+/* -------- WebAuthn biometric unlock (real platform authenticator) --------
+   The device's Face ID / Touch ID / Android biometric prompt is the
+   authority. No biometric data ever reaches this app — only a key pair
+   whose private key never leaves the device's secure hardware. The app
+   stores only the credential id and marks the unlock method, never the
+   PIN itself.
+   ------------------------------------------------------------------------ */
+const VS_BIO_KEY = "vaultstack:biometric:v1";
+async function vsBioSupported() {
+  try {
+    if (!window.PublicKeyCredential || !navigator.credentials) return false;
+    if (window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+      return Boolean(
+        await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      );
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function vsBioEnroll() {
+  if (!(await vsBioSupported())) throw new Error("Biometric unlock is not available on this device or browser.");
+  const challenge = crypto.getRandomValues(new Uint8Array(32));
+  const userId = crypto.getRandomValues(new Uint8Array(16));
+  const cred = await navigator.credentials.create({
+    publicKey: {
+      challenge,
+      rp: { name: "VaultStack" },
+      user: {
+        id: userId,
+        name: "vaultstack-owner",
+        displayName: "VaultStack owner",
+      },
+      pubKeyCredParams: [
+        { type: "public-key", alg: -7 },
+        { type: "public-key", alg: -257 },
+      ],
+      authenticatorSelection: {
+        residentKey: "required",
+        requireResidentKey: true,
+        userVerification: "required",
+      },
+      timeout: 60000,
+      attestation: "none",
+    },
+  });
+  if (!cred) throw new Error("No credential was created.");
+  localStorage.setItem(
+    VS_BIO_KEY,
+    JSON.stringify({
+      credId: cred.id,
+      enrolledAt: new Date().toISOString(),
+    })
+  );
+  return true;
+}
+async function vsBioUnlock() {
+  const raw = localStorage.getItem(VS_BIO_KEY);
+  if (!raw) throw new Error("Biometric unlock is not set up on this device.");
+  const rec = JSON.parse(raw);
+  const challenge = crypto.getRandomValues(new Uint8Array(32));
+  const assertion = await navigator.credentials.get({
+    publicKey: {
+      challenge,
+      rpId: location.hostname,
+      allowCredentials: [{ id: base64urlToBuffer(rec.credId), type: "public-key" }],
+      userVerification: "required",
+      timeout: 60000,
+    },
+  });
+  if (!assertion) throw new Error("Unlock was cancelled.");
+  return true;
+}
+function base64urlToBuffer(s) {
+  const pad = "=".repeat((4 - (s.length % 4)) % 4);
+  const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out.buffer;
+}
+
+/* -------- flat, practical UI kit (v8) -------- */
+function Btn2({ label, onClick, kind = "primary", full = true, small = false, disabled = false }) {
+  const base = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    width: full ? "100%" : "auto",
+    padding: small ? "10px 12px" : "14px 16px",
+    borderRadius: 10,
+    fontSize: small ? 15 : 16.5,
+    fontWeight: 700,
+    fontFamily: baseFont,
+    cursor: disabled ? "default" : "pointer",
+    touchAction: "manipulation",
+  };
+  const kinds = {
+    primary: { background: NAVY, color: "#fff", border: "none" },
+    ghost: { background: "#fff", color: NAVY, border: "1px solid " + NAVY },
+    quiet: { background: "#E7EBF1", color: INK, border: "1px solid " + LINE },
+    danger: { background: "#fff", color: BAD, border: "1px solid " + BAD },
+    dangerSolid: { background: BAD, color: "#fff", border: "none" },
+  }[kind];
+  return (
+    <button onClick={disabled ? undefined : onClick} style={{ ...base, ...kinds, opacity: disabled ? 0.45 : 1 }}>
+      {label}
+    </button>
+  );
+}
+function Card2({ children, pad = 14, style = {}, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: "#fff",
+        border: "1px solid " + LINE,
+        borderRadius: 10,
+        padding: pad,
+        marginBottom: 10,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+function Row2({ left, right, strong = false, color }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        gap: 10,
+        padding: "6px 0",
+        fontSize: strong ? 16 : 15,
+        fontWeight: strong ? 700 : 500,
+        color: color || INK,
+      }}
+    >
+      <span style={{ color: strong ? color || INK : "#46505C" }}>{left}</span>
+      <span style={{ fontFamily: MONO2, fontVariantNumeric: "tabular-nums", fontWeight: strong ? 700 : 600 }}>{right}</span>
+    </div>
+  );
+}
+function Field2({ label, value, onChange, type = "text", placeholder = "", inputMode }) {
+  return (
+    <label style={{ display: "block", marginBottom: 12 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 5 }}>{label}</div>
+      <input
+        type={type}
+        inputMode={inputMode}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "12px 12px",
+          fontSize: 16,
+          border: "1px solid " + LINE,
+          borderRadius: 8,
+          fontFamily: baseFont,
+          outline: "none",
+          background: "#fff",
+          color: INK,
+        }}
+        onFocus={(e) => { e.target.style.borderColor = NAVY; }}
+        onBlur={(e) => { e.target.style.borderColor = LINE; }}
+      />
+    </label>
+  );
+}
+function Modal2({ title, onClose, children }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(16,20,24,0.5)",
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        zIndex: 50,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#fff",
+          width: "100%",
+          maxWidth: 430,
+          maxHeight: "92%",
+          overflowY: "auto",
+          borderRadius: "12px 12px 0 0",
+          padding: "10px 16px 24px",
+          boxSizing: "border-box",
+          paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
+        }}
+      >
+        <div style={{ width: 36, height: 4, borderRadius: 99, background: LINE, margin: "4px auto 10px" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: INK }}>{title}</div>
+          <button
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: "#E7EBF1",
+              borderRadius: 8,
+              padding: "7px 11px",
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Close
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+function Pill2({ text, tone = "neutral" }) {
+  const map = {
+    neutral: { bg: "#EFF3F8", fg: "#3D4754" },
+    good: { bg: "#E3F1E8", fg: GOOD },
+    warn: { bg: "#F9F1DF", fg: WARN },
+    bad: { bg: "#FBEAE8", fg: BAD },
+    navy: { bg: "#E8EEF7", fg: NAVY },
+  }[tone];
+  return (
+    <span
+      style={{
+        background: map.bg,
+        color: map.fg,
+        fontSize: 12,
+        fontWeight: 700,
+        padding: "3px 9px",
+        borderRadius: 6,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+function Key2({ children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "15px 0",
+        fontSize: 22,
+        fontWeight: 700,
+        borderRadius: 10,
+        border: "1px solid " + LINE,
+        background: "#fff",
+        color: INK,
+        cursor: "pointer",
+        touchAction: "manipulation",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* -------- v8 payout engine: no owner's maintenance split -------- */
+function computeFinancials2(state) {
+  const grossSales = state.sales.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const fixedTotal = state.season.fixed.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const varTotal = state.expenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const netPot = grossSales - fixedTotal - varTotal;
+  const positionsTotal = state.workers.reduce((s, w) => s + positionPayFor(state, w), 0);
+  const beforeSplit = state.company.positionsBeforeSplit !== false;
+  const potForSplit = beforeSplit ? Math.max(0, netPot - positionsTotal) : Math.max(0, netPot);
+  const totalUnits = state.workers.reduce((s, w) => s + (Number(w.units) || 0), 0);
+  const vpu = totalUnits > 0 ? potForSplit / totalUnits : 0;
+  return {
+    grossSales,
+    fixedTotal,
+    varTotal,
+    netPot,
+    positionsTotal,
+    beforeSplit,
+    potForSplit,
+    totalUnits,
+    vpu,
+  };
+}
+
+/* ---- bind flat kit + engine over the originals ---- */
+Btn = Btn2;
+Card = Card2;
+Row = Row2;
+Field = Field2;
+Modal = Modal2;
+Pill = Pill2;
+Key = Key2;
+computeFinancials = computeFinancials2;
+
+/* ============================================================
+   v8 screens — full-height PIN pad (+ biometric), onboarding
+   without the owner's-split step, and an app shell with
+   biometric unlock. Bound over the v7/legacy components below.
+   ============================================================ */
+function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
+  const [digits, setDigits] = useState("");
+  useEffect(() => {
+    if (digits.length === 4) {
+      const d = digits;
+      setDigits("");
+      onComplete(d);
+    }
+  }, [digits, onComplete]);
+  const press = (k) => {
+    if (k === "del") setDigits((d) => d.slice(0, -1));
+    else if (digits.length < 4) setDigits((d) => d + k);
+  };
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"];
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100%",
+        width: "100%",
+        padding: "24px 22px calc(20px + env(safe-area-inset-bottom, 0px))",
+        boxSizing: "border-box",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ flex: 1 }} />
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+        <div
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 14,
+            background: "#fff",
+            border: "1px solid " + LINE,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Lock size={28} color={NAVY} strokeWidth={2.2} />
+        </div>
+      </div>
+      <div style={{ fontSize: 21, fontWeight: 700, color: INK }}>{title}</div>
+      {subtitle ? (
+        <div style={{ fontSize: 15, color: "#46505C", marginTop: 5 }}>{subtitle}</div>
+      ) : null}
+      <div style={{ display: "flex", justifyContent: "center", gap: 14, margin: "20px 0 6px" }}>
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 999,
+              border: "2px solid " + NAVY,
+              background: i < digits.length ? NAVY : "transparent",
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ minHeight: 20, color: BAD, fontSize: 14, fontWeight: 600 }}>{errorMsg || ""}</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 10,
+          width: "100%",
+          maxWidth: 320,
+          margin: "6px auto 0",
+        }}
+      >
+        {keys.map((k, i) =>
+          k === "" ? (
+            <div key={i} />
+          ) : (
+            <Key key={i} onClick={() => press(k)}>
+              {k === "del" ? <Delete size={20} /> : k}
+            </Key>
+          )
+        )}
+      </div>
+      {bio && bio.available ? (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ width: "100%", maxWidth: 320, margin: "0 auto" }}>
+            <Btn
+              label={bio.unlocking ? "Waiting for scan…" : "Unlock with face or fingerprint"}
+              kind="ghost"
+              onClick={bio.onUnlock}
+              disabled={bio.unlocking}
+            />
+          </div>
+          {bio.unlockError ? (
+            <div style={{ color: BAD, fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>{bio.unlockError}</div>
+          ) : (
+            <div style={{ color: "#5A6675", fontSize: 13, marginTop: 8 }}>Or enter the PIN above.</div>
+          )}
+        </div>
+      ) : null}
+      <div style={{ flex: 1.2 }} />
+    </div>
+  );
+}
+
+function Onboarding3({ onFinish, onDemo, bio }) {
+  const [step, setStep] = useState(0);
+  const [draft, setDraft] = useState(blankState());
+  const [fxName, setFxName] = useState("");
+  const [fxAmt, setFxAmt] = useState("");
+  const [posName, setPosName] = useState("");
+  const [posPay, setPosPay] = useState("");
+  const [wkName, setWkName] = useState("");
+  const [wkUnits, setWkUnits] = useState("");
+  const [wkPhone, setWkPhone] = useState("");
+  const [wkDebt, setWkDebt] = useState("");
+  const [wkPos, setWkPos] = useState(null);
+  const [pinFirst, setPinFirst] = useState(null);
+  const [pinErr, setPinErr] = useState("");
+  const [bioStep, setBioStep] = useState(false);
+
+  const setCo = (k, v) => setDraft((d) => ({ ...d, company: { ...d.company, [k]: v } }));
+  const setSe = (k, v) => setDraft((d) => ({ ...d, season: { ...d.season, [k]: v } }));
+
+  const addFixed = () => {
+    if (!fxName.trim() || !Number(fxAmt)) return;
+    setDraft((d) => ({
+      ...d,
+      season: {
+        ...d.season,
+        fixed: [...d.season.fixed, { id: uid(), name: fxName.trim(), amount: Number(fxAmt) }],
+      },
+    }));
+    setFxName("");
+    setFxAmt("");
+  };
+  const addPosition = () => {
+    if (!posName.trim() || !Number(posPay)) return;
+    setDraft((d) => ({
+      ...d,
+      positions: [...d.positions, { id: uid(), name: posName.trim(), pay: Number(posPay) }],
+    }));
+    setPosName("");
+    setPosPay("");
+  };
+  const addWorker = () => {
+    if (!wkName.trim() || !Number(wkUnits)) return;
+    setDraft((d) => ({
+      ...d,
+      workers: [
+        ...d.workers,
+        {
+          id: uid(),
+          name: wkName.trim(),
+          phone: wkPhone.trim(),
+          units: Number(wkUnits),
+          positionId: wkPos,
+          carriedDebt: Number(wkDebt) || 0,
+          loans: [],
+          payments: [],
+          adjustments: [],
+        },
+      ],
+    }));
+    setWkName("");
+    setWkUnits("");
+    setWkPhone("");
+    setWkDebt("");
+    setWkPos(null);
+  };
+
+  const header = (t, s, n) => (
+    <div style={{ marginBottom: 16 }}>
+      {n && <div style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, letterSpacing: 0.8 }}>{n}</div>}
+      <div style={{ fontSize: 21, fontWeight: 700, color: INK, marginTop: 4 }}>{t}</div>
+      {s && <div style={{ fontSize: 15, color: "#46505C", marginTop: 4 }}>{s}</div>}
+    </div>
+  );
+
+  if (bioStep)
+    return (
+      <div style={{ padding: "24px 20px", textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 14,
+              background: "#fff",
+              border: "1px solid " + LINE,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Lock size={26} color={NAVY} strokeWidth={2.2} />
+          </div>
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: INK }}>
+          Unlock with your face or fingerprint?
+        </div>
+        <div style={{ fontSize: 15, color: "#46505C", margin: "10px auto 0", maxWidth: 360, textAlign: "left" }}>
+          {bio.supported
+            ? "Your phone will ask for Face ID, Touch ID or your fingerprint when you open VaultStack. The PIN keeps working if the scan fails or the device has no sensor."
+            : "This device or browser does not support biometric unlock. You will keep using your PIN."}
+        </div>
+        <div style={{ fontSize: 13.5, color: "#5A6675", margin: "8px auto 18px", maxWidth: 360, textAlign: "left" }}>
+          Your PIN is never stored in the biometric record, and fingerprint data never leaves your
+          device — the phone only confirms it is you.
+        </div>
+        {bio.supported && bio.error ? (
+          <div style={{ color: BAD, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{bio.error}</div>
+        ) : null}
+        {bio.supported ? (
+          <div>
+            <Btn label={bio.busy ? "Waiting for scan…" : "Yes, use face or fingerprint"} onClick={() => bio.onEnable(draft)} disabled={bio.busy} />
+            <div style={{ height: 10 }} />
+          </div>
+        ) : null}
+        <Btn label={bio.supported ? "No, PIN only" : "Continue"} kind="quiet" onClick={() => bio.onSkip(draft)} />
+      </div>
+    );
+
+  if (step === 0)
+    return (
+      <div style={{ padding: "0 22px 24px", textAlign: "center" }}>
+        <div
+          style={{
+            background: NAVY,
+            margin: "0 -22px",
+            padding: "30px 22px 34px",
+            borderRadius: "0 0 12px 12px",
+          }}
+        >
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 14,
+              background: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 12px",
+            }}
+          >
+            <Anchor size={34} color={NAVY} strokeWidth={2.2} />
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>VaultStack</div>
+          <div style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "6px auto 0", maxWidth: 300 }}>
+            Your fishing money, kept safe and clear.
+          </div>
+        </div>
+        <div
+          style={{
+            textAlign: "left",
+            maxWidth: 340,
+            margin: "18px auto 0",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          {[
+            { Icon: Fish, text: "Log every catch and sale" },
+            { Icon: Users, text: "Share the pot fairly by units" },
+            { Icon: Waves, text: "Know the sea before you sail" },
+          ].map(({ Icon, text }) => (
+            <div
+              key={text}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: "#fff",
+                border: "1px solid " + LINE,
+                borderRadius: 10,
+                padding: "11px 14px",
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: "#E8EEF7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon size={20} color={NAVY} />
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 600, color: INK }}>{text}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ height: 22 }} />
+        <Btn label="Set up my company" onClick={() => setStep(1)} />
+        <div style={{ height: 10 }} />
+        <Btn label="Load demo data (PIN: 1234)" kind="ghost" onClick={onDemo} />
+      </div>
+    );
+
+  if (step === 6)
+    return (
+      <PinPad3
+        title={pinFirst ? "Enter PIN again" : "Set a 4-number PIN"}
+        subtitle={
+          pinFirst
+            ? "Type the same PIN one more time."
+            : "Only you will open this app. Worker debts stay private."
+        }
+        errorMsg={pinErr}
+        onComplete={async (d) => {
+          if (!pinFirst) {
+            setPinFirst(d);
+            setPinErr("");
+          } else if (d === pinFirst) {
+            const salt = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("");
+            const record = await vsHashPin(d, salt);
+            const finalDraft = { ...draft, pin: record, setupDone: true };
+            setDraft(finalDraft);
+            if (bio && bio.supported) setBioStep(true);
+            else onFinish(finalDraft);
+          } else {
+            setPinFirst(null);
+            setPinErr("PINs did not match. Start again.");
+          }
+        }}
+      />
+    );
+
+  return (
+    <div style={{ padding: 20 }}>
+      {step === 1 && (
+        <div>
+          {header("Your company", "Tell us about your business.", "STEP 1 OF 5")}
+          <Field label="Company name" value={draft.company.name} onChange={(v) => setCo("name", v)} placeholder="e.g. Selasi Fishing Co." />
+          <Field label="Owner name" value={draft.company.owner} onChange={(v) => setCo("owner", v)} placeholder="Your name" />
+          <Field label="Phone number" value={draft.company.phone} onChange={(v) => setCo("phone", v)} inputMode="tel" placeholder="024 000 0000" />
+          <Btn label="Next" onClick={() => setStep(2)} disabled={!draft.company.name.trim()} />
+        </div>
+      )}
+      {step === 2 && (
+        <div>
+          {header("Positions", "Roles that earn standing pay each season (optional).", "STEP 2 OF 5")}
+          {draft.positions.map((p) => (
+            <Card key={p.id} pad={12}>
+              <Row left={p.name} right={fmt(p.pay) + " / season"} />
+            </Card>
+          ))}
+          <Field label="Position name" value={posName} onChange={setPosName} placeholder="e.g. Bosun" />
+          <Field label="Pay per season (GH₵)" value={posPay} onChange={(v) => setPosPay(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
+          <Btn label="+ Add position" kind="ghost" onClick={addPosition} />
+          <div style={{ height: 12 }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(1)} />
+            <Btn label="Next" onClick={() => setStep(3)} />
+          </div>
+        </div>
+      )}
+      {step === 3 && (
+        <div>
+          {header("Fixed expenses", "Costs for the whole season, paid before sharing.", "STEP 3 OF 5")}
+          {draft.season.fixed.map((f) => (
+            <Card key={f.id} pad={12}>
+              <Row left={f.name} right={fmt(f.amount)} />
+            </Card>
+          ))}
+          <Field label="Expense name" value={fxName} onChange={setFxName} placeholder="e.g. Net repairs" />
+          <Field label="Amount (GH₵)" value={fxAmt} onChange={(v) => setFxAmt(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
+          <Btn label="+ Add expense" kind="ghost" onClick={addFixed} />
+          <div style={{ height: 12 }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(2)} />
+            <Btn label="Next" onClick={() => setStep(4)} />
+          </div>
+        </div>
+      )}
+      {step === 4 && (
+        <div>
+          {header("Workers & shares", "Assign units and a position if they hold one.", "STEP 4 OF 5")}
+          {draft.workers.map((w) => {
+            const p = draft.positions.find((x) => x.id === w.positionId);
+            return (
+              <Card key={w.id} pad={12}>
+                <Row
+                  left={w.name + (p ? " · " + p.name : "")}
+                  right={w.units + " units" + (w.carriedDebt ? " · owes " + fmt(w.carriedDebt) : "")}
+                />
+              </Card>
+            );
+          })}
+          <Field label="Worker name" value={wkName} onChange={setWkName} placeholder="e.g. Kofi" />
+          <Field label="Share units" value={wkUnits} onChange={(v) => setWkUnits(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
+          <Field label="Phone (for WhatsApp statements)" value={wkPhone} onChange={setWkPhone} inputMode="tel" placeholder="Optional" />
+          <Field label="Debt from last season (GH₵)" value={wkDebt} onChange={(v) => setWkDebt(v.replace(/[^\d.]/g, ""))} inputMode="decimal" placeholder="0" />
+          {draft.positions.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 6 }}>Position (optional)</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <button
+                  onClick={() => setWkPos(null)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    border: "1px solid " + (wkPos === null ? NAVY : LINE),
+                    background: wkPos === null ? "#E8EEF7" : "#fff",
+                    fontWeight: 700,
+                    fontSize: 14.5,
+                    color: INK,
+                    cursor: "pointer",
+                  }}
+                >
+                  None
+                </button>
+                {draft.positions.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setWkPos(p.id)}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 8,
+                      border: "1px solid " + (wkPos === p.id ? NAVY : LINE),
+                      background: wkPos === p.id ? "#E8EEF7" : "#fff",
+                      fontWeight: 700,
+                      fontSize: 14.5,
+                      color: INK,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <Btn label="+ Add worker" kind="ghost" onClick={addWorker} />
+          <div style={{ height: 12 }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(3)} />
+            <Btn label="Next" onClick={() => setStep(5)} disabled={draft.workers.length === 0} />
+          </div>
+        </div>
+      )}
+      {step === 5 && (
+        <div>
+          {header("Season start", "When does this season begin?", "STEP 5 OF 5")}
+          <Field label="Season name" value={draft.season.name} onChange={(v) => setSe("name", v)} placeholder="e.g. Major Season 2026" />
+          <Field label="Start date" type="date" value={draft.season.start} onChange={(v) => setSe("start", v)} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn label="Back" kind="quiet" onClick={() => setStep(4)} />
+            <Btn label="Next: set PIN" onClick={() => setStep(6)} disabled={!draft.season.name.trim()} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VaultStackV3() {
+  const [state, setState] = useState(null);
+  const [locked, setLocked] = useState(false);
+  const [pinErr, setPinErr] = useState("");
+  const [tab, setTab] = useState("home");
+  const [flow, setFlow] = useState(null);
+  const [expCat, setExpCat] = useState(null);
+  const [expSession, setExpSession] = useState([]);
+  const [newCatName, setNewCatName] = useState("");
+  const [toastMsg, setToastMsg] = useState(null);
+  const [saveStamp, setSaveStamp] = useState(null);
+  const [bioSupported, setBioSupported] = useState(false);
+  const [bioEnrolled, setBioEnrolled] = useState(false);
+  const [bioUnlocking, setBioUnlocking] = useState(false);
+  const [bioError, setBioError] = useState("");
+  const [bioBusy, setBioBusy] = useState(false); /* p1400 */
+  const saveTimer = useRef(null);
+  const toastTimer = useRef(null);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    (async () => {
+      const saved = normalizeState(await loadSaved());
+      if (saved && saved.setupDone) {
+        setState(saved);
+        setLocked(Boolean(saved.pin));
+      } else {
+        setState(saved || blankState());
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    vsBioSupported().then((s) => {
+      setBioSupported(s);
+      if (s) {
+        try {
+          setBioEnrolled(Boolean(localStorage.getItem(VS_BIO_KEY)));
+        } catch {
+          setBioEnrolled(false);
+        }
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (state === null) return;
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveStamp("saving");
+    saveTimer.current = setTimeout(async () => {
+      const ok = await persist(state);
+      setSaveStamp(ok ? new Date() : "error");
+    }, 450);
+    return () => saveTimer.current && clearTimeout(saveTimer.current);
+  }, [state]);
+
+  const toast = (msg) => {
+    setToastMsg(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMsg(null), 2000);
+  };
+
+  const fin = useMemo(() => (state ? computeFinancials(state) : null), [state]);
+
+  if (state === null)
+    return (
+      <div style={{ fontFamily: baseFont, padding: 40, textAlign: "center", color: "#5A6675" }}>
+        Opening VaultStack…
+      </div>
+    );
+
+  const doBioUnlock = async () => {
+    if (bioUnlocking) return;
+    setBioUnlocking(true);
+    setBioError("");
+    try {
+      await vsBioUnlock();
+      setLocked(false);
+    } catch (e) {
+      setBioError(e && e.message ? e.message : "Unlock failed. Use your PIN.");
+    } finally {
+      setBioUnlocking(false);
+    }
+  };
+
+  const addSale = (s) => setState((st) => ({ ...st, sales: [...st.sales, s] }));
+  const addExpense = (e) => setState((st) => ({ ...st, expenses: [...st.expenses, e] }));
+  const removeSale = (id) => setState((st) => ({ ...st, sales: st.sales.filter((x) => x.id !== id) }));
+  const removeExpense = (id) => setState((st) => ({ ...st, expenses: st.expenses.filter((x) => x.id !== id) }));
+  const addLoan = (wid, loan) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: [...w.loans, loan] } : w)),
+    }));
+  const addPayment = (wid, pay) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: [...w.payments, pay] } : w)),
+    }));
+  const addAdjustment = (wid, adj) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: [...w.adjustments, adj] } : w)),
+    }));
+  const removeLoan = (wid, id) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: w.loans.filter((x) => x.id !== id) } : w)),
+    }));
+  const removePayment = (wid, id) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: w.payments.filter((x) => x.id !== id) } : w)),
+    }));
+  const removeAdjustment = (wid, id) =>
+    setState((st) => ({
+      ...st,
+      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: w.adjustments.filter((x) => x.id !== id) } : w)),
+    }));
+  const resolveCategory = (raw) => {
+    const name = raw.trim();
+    const existing = state.expenseCats.find((c) => c.toLowerCase() === name.toLowerCase());
+    if (existing) return existing;
+    setState((st) => ({ ...st, expenseCats: [...st.expenseCats, name] }));
+    return name;
+  };
+  const closeSeason = () =>
+    setState((st) => {
+      const f = computeFinancials(st);
+      const settlements = st.workers.map((w) => {
+        const k = workerNumbers(st, w, f);
+        return { name: w.name, payout: k.payout };
+      });
+      const nextYear = new Date().getFullYear();
+      return {
+        ...st,
+        pastSeasons: [
+          ...st.pastSeasons,
+          { name: st.season.name, netPot: f.netPot, settlements },
+        ],
+        season: { ...st.season, name: "New Season " + nextYear, start: todayISO() },
+        sales: [],
+        expenses: [],
+        workers: st.workers.map((w) => {
+          const k = workerNumbers(st, w, f);
+          return { ...w, carriedDebt: k.payout < 0 ? -k.payout : 0, loans: [], payments: [], adjustments: [] };
+        }),
+      };
+    });
+  const resetAll = async () => {
+    await wipeSaved();
+    try {
+      localStorage.removeItem(VS_BIO_KEY);
+    } catch {}
+    setBioEnrolled(false);
+    firstRender.current = true;
+    setState(blankState());
+    setLocked(false);
+    setTab("home");
+    setFlow(null);
+  };
+
+  const shell = (children) => (
+    <div
+      style={{
+        fontFamily: baseFont,
+        background: MIST,
+        height: "100%",
+        maxWidth: 430,
+        margin: "0 auto",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {children}
+    </div>
+  );
+
+  if (!state.setupDone)
+    return shell(
+      <div style={{ background: "#fff", flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <Onboarding3
+          onFinish={(d) => {
+            setState(d);
+            setTab("home");
+          }}
+          onDemo={() => {
+            setState(demoState());
+            setLocked(true);
+          }}
+          bio={{
+            supported: bioSupported,
+            busy: bioBusy,
+            error: bioError,
+            onEnable: async (d) => {
+              setBioBusy(true);
+              setBioError("");
+              try {
+                await vsBioEnroll();
+                setBioEnrolled(true);
+                setState(d);
+                setTab("home");
+              } catch (e) {
+                setBioError(e && e.message ? e.message : "Could not set up biometric unlock. You can use your PIN.");
+              } finally {
+                setBioBusy(false);
+              }
+            },
+            onSkip: (d) => {
+              setState(d);
+              setTab("home");
+            },
+          }}
+        />
+      </div>
+    );
+
+  if (locked)
+    return shell(
+      <div style={{ background: MIST, flex: 1, minHeight: 0, display: "flex" }}>
+        <PinPad3
+          title="Enter your PIN"
+          subtitle={state.company.name}
+          errorMsg={pinErr}
+          onComplete={async (d) => {
+            if (await vsVerifyPin(d, state.pin)) {
+              setLocked(false);
+              setPinErr("");
+            } else {
+              setPinErr("Wrong PIN. Try again.");
+            }
+          }}
+          bio={
+            bioSupported && bioEnrolled
+              ? { available: true, onUnlock: doBioUnlock, unlockError: bioError, unlocking: bioUnlocking }
+              : { available: false }
+          }
+        />
+      </div>
+    );
+
+  const tabs = [
+    { id: "home", Icon: Home, label: "Home" },
+    { id: "history", Icon: Banknote, label: "History" },
+    { id: "workers", Icon: Users, label: "Workers" },
+    { id: "weather", Icon: Waves, label: "Weather" },
+    { id: "more", Icon: Settings, label: "More" },
+  ];
+
+  const openSale = () => setFlow("sale");
+  const openExpense = () => {
+    setExpSession([]);
+    setFlow("expense-cat");
+  };
+
+  const availableCats = state.expenseCats.filter(
+    (c) => !expSession.some((s) => s.cat.toLowerCase() === c.toLowerCase())
+  );
+  const sessionTotal = expSession.reduce((s, x) => s + x.amount, 0);
+
+  return shell(
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+      <div
+        style={{
+          background: NAVY,
+          color: "#fff",
+          padding: "13px 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ fontWeight: 700, fontSize: 17, display: "flex", alignItems: "center", gap: 8 }}>
+          <Anchor size={18} strokeWidth={2.4} /> VaultStack
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 11.5, opacity: 0.8 }}>
+            {saveStamp === "saving" ? "Saving…" : saveStamp === "error" ? "Not saved" : "Saved on this phone"}
+          </span>
+          <button
+            onClick={() => { setLocked(true); setTab("home"); }}
+            title="Lock app"
+            style={{
+              background: "rgba(255,255,255,0.16)",
+              border: "none",
+              color: "#fff",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Lock size={13} /> Lock
+          </button>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, padding: 14, overflowY: "auto", minHeight: 0 }}>
+        {tab === "home" && <HomeTabV2 state={state} fin={fin} openSale={openSale} openExpense={openExpense} />}
+        {tab === "history" && (
+          <HistoryTabV2
+            state={state}
+            fin={fin}
+            openSale={openSale}
+            openExpense={openExpense}
+            removeSale={removeSale}
+            removeExpense={removeExpense}
+            toast={toast}
+          />
+        )}
+        {tab === "workers" && (
+          <WorkersTabV2
+            state={state}
+            fin={fin}
+            addLoan={addLoan}
+            addPayment={addPayment}
+            addAdjustment={addAdjustment}
+            removeLoan={removeLoan}
+            removePayment={removePayment}
+            removeAdjustment={removeAdjustment}
+            toast={toast}
+          />
+        )}
+        {tab === "weather" && <WeatherTabV2 />}
+        {tab === "more" && (
+          <MoreTabV2
+            state={state}
+            fin={fin}
+            onCloseSeason={closeSeason}
+            onReset={resetAll}
+            bio={{
+              supported: bioSupported,
+              enrolled: bioEnrolled,
+              busy: bioBusy,
+              onEnable: async () => {
+                setBioBusy(true);
+                setBioError("");
+                try {
+                  await vsBioEnroll();
+                  setBioEnrolled(true);
+                  toast("Face / fingerprint unlock is on");
+                } catch (e) {
+                  setBioError(e && e.message ? e.message : "Could not turn on biometric unlock.");
+                  toast("Could not set up unlock. Use your PIN.");
+                } finally {
+                  setBioBusy(false);
+                }
+              },
+              onDisable: () => {
+                try {
+                  localStorage.removeItem(VS_BIO_KEY);
+                } catch {}
+                setBioEnrolled(false);
+                toast("Face / fingerprint unlock is off");
+              },
+            }}
+          />
+        )}
+      </div>
+
+      {flow === "sale" && (
+        <KeypadSheet
+          title="Log a fish sale"
+          HeaderIcon={Fish}
+          subtitle="How much money did you receive?"
+          confirmLabel="Save sale"
+          onClose={() => setFlow(null)}
+          onSave={({ amount, date }) => {
+            addSale({ id: uid(), date, amount, note: "", createdAt: new Date().toISOString() });
+            setFlow(null);
+            toast("Sale saved · " + fmt(amount));
+          }}
+        />
+      )}
+
+      {flow === "expense-cat" && (
+        <Modal title="What did you pay for?" onClose={() => setFlow(null)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {availableCats.map((name) => {
+              const Icon = catIcon(name);
+              return (
+                <button
+                  key={name}
+                  onClick={() => {
+                    setExpCat(name);
+                    setFlow("expense-amt");
+                  }}
+                  style={{
+                    padding: "16px 8px",
+                    borderRadius: 10,
+                    border: "1px solid " + LINE,
+                    background: "#fff",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Icon size={26} color={NAVY} strokeWidth={2.2} />
+                  <span style={{ fontWeight: 700, fontSize: 15, color: INK }}>{name}</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => {
+                setNewCatName("");
+                setFlow("expense-name");
+              }}
+              style={{
+                padding: "16px 8px",
+                borderRadius: 10,
+                border: "1px dashed " + NAVY,
+                background: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <Plus size={26} color={NAVY} strokeWidth={2.2} />
+              <span style={{ fontWeight: 700, fontSize: 15, color: NAVY }}>Other</span>
+            </button>
+          </div>
+
+          {expSession.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: INK, marginBottom: 4 }}>Logged just now</div>
+              {expSession.map((s, i) => {
+                const SIcon = catIcon(s.cat);
+                return (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 15, color: "#46505C" }}>
+                      <Check size={17} color={GOOD} strokeWidth={3} /> <SIcon size={17} color={NAVY} /> {s.cat}
+                    </span>
+                    <span style={{ fontFamily: MONO2, fontWeight: 700, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>− {fmt(s.amount)}</span>
+                  </div>
+                );
+              })}
+              <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+              <Row left="Total this sitting" right={"− " + fmt(sessionTotal)} strong />
+              <div style={{ height: 10 }} />
+              <Btn label={
+                <>
+                  <Check size={20} /> Done
+                </>
+              } onClick={() => setFlow(null)} />
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {flow === "expense-name" && (
+        <Modal title="Name this expense" onClose={() => setFlow("expense-cat")}>
+          <div style={{ fontSize: 15, color: "#46505C", marginBottom: 14 }}>
+            Give it a name once. It will be saved as a button for next time.
+          </div>
+          <Field label="What is it called?" value={newCatName} onChange={setNewCatName} placeholder="e.g. Net mending" />
+          <Btn
+            label="Next"
+            disabled={!newCatName.trim()}
+            onClick={() => {
+              const finalName = resolveCategory(newCatName);
+              setExpCat(finalName);
+              setFlow("expense-amt");
+            }}
+          />
+        </Modal>
+      )}
+
+      {flow === "expense-amt" && (
+        <KeypadSheet
+          title={"Expense: " + expCat}
+          HeaderIcon={catIcon(expCat)}
+          subtitle="How much did you pay?"
+          confirmLabel="Save expense"
+          onClose={() => setFlow("expense-cat")}
+          onSave={({ amount, date }) => {
+            addExpense({ id: uid(), date, amount, category: expCat, createdAt: new Date().toISOString() });
+            setExpSession((prev) => [...prev, { cat: expCat, amount }]);
+            toast(expCat + " saved · " + fmt(amount));
+            setFlow("expense-cat");
+          }}
+        />
+      )}
+
+      {toastMsg && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 84,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: INK,
+            color: "#fff",
+            padding: "11px 16px",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 700,
+            zIndex: 60,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Check size={17} color="#7BE495" /> {toastMsg}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          borderTop: "1px solid " + LINE,
+          background: "#fff",
+          flexShrink: 0,
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
+        {tabs.map(({ id, Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => {
+              setTab(id);
+              setFlow(null);
+            }}
+            style={{
+              flex: 1,
+              padding: "9px 0 8px",
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              color: tab === id ? NAVY : "#68727E",
+              fontWeight: tab === id ? 700 : 500,
+              fontSize: 12,
+              fontFamily: baseFont,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 3,
+            }}
+          >
+            <Icon size={21} strokeWidth={tab === id ? 2.5 : 2} color={tab === id ? NAVY : "#68727E"} />
+            {label}
+            <div style={{ width: 20, height: 3, background: tab === id ? NAVY : "transparent", borderRadius: 2 }} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 /* ============================================================
    UI REFRESH (v7) — redesigned tab components.
@@ -473,39 +1796,22 @@ function seaVerdict(wx) {
     : { label: "SAFE", col: GOOD, msg: "Good conditions for fishing today." };
 }
 
-function HeroWaves() {
-  return (
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: -2, height: 46, pointerEvents: "none" }}>
-      <div style={{ position: "absolute", inset: 0, opacity: 0.32, animation: "waveSlide 9s linear infinite" }}>
-        <svg width="200%" height="100%" viewBox="0 0 1200 60" preserveAspectRatio="none">
-          <path d="M0 30 Q 75 0 150 30 T 300 30 T 450 30 T 600 30 T 750 30 T 900 30 T 1050 30 T 1200 30 V60 H0 Z" fill="rgba(255,255,255,0.85)" />
-        </svg>
-      </div>
-      <div style={{ position: "absolute", inset: 0, opacity: 0.16, animation: "waveSlide 6s linear infinite reverse" }}>
-        <svg width="200%" height="100%" viewBox="0 0 1200 60" preserveAspectRatio="none">
-          <path d="M0 34 Q 100 6 200 34 T 400 34 T 600 34 T 800 34 T 1000 34 T 1200 34 V60 H0 Z" fill="#7FD1C0" />
-        </svg>
-      </div>
-    </div>
-  );
-}
 
 function SplitCard({ fin }) {
-  const pct = Math.max(0, Math.min(100, Number(fin.ownerPct) || 0));
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1.2 }}>THE SPLIT</div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8A94A3" }}>{fin.totalUnits} units in crew</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1 }}>HOW THE POT SPLITS</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: "#5A6675" }}>{fin.totalUnits} units in crew</div>
       </div>
-      <div style={{ display: "flex", height: 14, borderRadius: 99, overflow: "hidden", border: "1px solid " + LINE, marginBottom: 12 }}>
-        <div style={{ width: pct + "%", background: "linear-gradient(180deg, #1A4E80, " + DEEP + ")" }} />
-        <div style={{ width: 100 - pct + "%", background: "linear-gradient(180deg, #189C74, " + SEA + ")" }} />
-      </div>
-      <Row left={"Owner's half · " + fin.ownerPct + "%"} right={fmt(fin.ownerHalf)} />
-      <Row left={"Workers' half · " + (100 - fin.ownerPct) + "%"} right={fmt(fin.workersHalf)} strong color={SEA} />
-      <div style={{ fontSize: 13, color: "#8A94A3", marginTop: 4 }}>
-        Workers' half ÷ {fin.totalUnits} units = {fmt(fin.vpu)} per unit
+      <Row left="Pot to split" right={fmt(fin.potForSplit)} />
+      {fin.positionsTotal > 0 && (
+        <Row left="Position pay taken out first" right={"− " + fmt(fin.positionsTotal)} />
+      )}
+      <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+      <Row left="Each unit is worth" right={fmt(fin.vpu)} strong color={NAVY} />
+      <div style={{ fontSize: 13, color: "#5A6675", marginTop: 4 }}>
+        Units × value per unit = each worker{"'"}s share.
       </div>
     </Card>
   );
@@ -519,66 +1825,37 @@ function HomeTabV2({ state, fin, openSale, openExpense }) {
   const owner = state.company.owner ? state.company.owner.split(" ")[0] : "";
   return (
     <div>
-      <div
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: 24,
-          padding: "20px 20px 32px",
-          marginBottom: 12,
-          color: "#fff",
-          background: "linear-gradient(160deg, #0A2238 0%, " + DEEP + " 55%, #10395C 100%)",
-          boxShadow: "0 14px 30px rgba(10,34,56,0.28)",
-        }}
-      >
-        <HeroWaves />
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.4, opacity: 0.7 }}>
-                {state.season.name.toUpperCase()}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 3, letterSpacing: "-0.3px" }}>
-                Akwaaba{owner ? ", " + owner : ""} 👋
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: 0.6,
-                background: "rgba(255,255,255,0.14)",
-                padding: "6px 10px",
-                borderRadius: 999,
-                whiteSpace: "nowrap",
-                marginTop: 2,
-              }}
-            >
-              SINCE {fmtDate(state.season.start).toUpperCase()}
-            </div>
-          </div>
-          <div style={{ width: 44, height: 3, background: GOLD, borderRadius: 99, margin: "16px 0 10px" }} />
-          <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>Money in the pot (net)</div>
-          <div style={{ fontFamily: MONO, fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-            {fmt(fin.netPot)}
-          </div>
-        </div>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5A6675", letterSpacing: 1 }}>
+        {state.season.name ? state.season.name.toUpperCase() : "THIS SEASON"} · SINCE {fmtDate(state.season.start).toUpperCase()}
+      </div>
+      <div style={{ fontSize: 21, fontWeight: 800, color: INK, marginTop: 2 }}>
+        {owner ? "Akwaaba, " + owner : "Season so far"}
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+      <Card pad={14} style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#5A6675" }}>Money in the pot (net)</div>
+        <div style={{ fontFamily: MONO, fontSize: 30, fontWeight: 800, color: INK, fontVariantNumeric: "tabular-nums", lineHeight: 1.15 }}>
+          {fmt(fin.netPot)}
+        </div>
+        {fin.netPot < 0 && (
+          <div style={{ fontSize: 13.5, color: BAD, fontWeight: 700, marginTop: 2 }}>
+            Expenses are bigger than sales. Shares are worth GH₵ 0 until the pot recovers.
+          </div>
+        )}
+      </Card>
+
+      <div style={{ display: "flex", gap: 10, margin: "2px 0 10px" }}>
         <Btn label={<><Plus size={20} /> Log sale</>} onClick={openSale} />
         <Btn label={<><Minus size={20} /> Log expense</>} kind="ghost" onClick={openExpense} />
       </div>
 
-      <Card pad={14} onClick={() => setShowSea(true)} style={{ borderLeft: "5px solid " + v.col, cursor: "pointer" }}>
+      <Card pad={12} onClick={() => setShowSea(true)} style={{ borderLeft: "4px solid " + v.col, cursor: "pointer" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: MIST, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Waves size={22} color={v.col} />
-            </div>
-            <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <Waves size={22} color={v.col} style={{ flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontWeight: 900, fontSize: 15, color: v.col, letterSpacing: 0.5 }}>{v.label}</span>
+                <span style={{ fontWeight: 800, fontSize: 15, color: v.col }}>{v.label}</span>
                 {wx.status === "demo" && <Pill text="Offline" tone="neutral" />}
               </div>
               <div style={{ fontSize: 13, color: "#5A6675", marginTop: 1 }}>
@@ -592,40 +1869,24 @@ function HomeTabV2({ state, fin, openSale, openExpense }) {
         </div>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-        {[
-          { Icon: Fish, label: "Fish sales", value: fmt(fin.grossSales), c: GOOD, soft: "#E3F3EE" },
-          { Icon: Fuel, label: "Trip expenses", value: "− " + fmt(fin.varTotal), c: BAD, soft: "#FDECEA" },
-          { Icon: Wrench, label: "Fixed costs", value: "− " + fmt(fin.fixedTotal), c: NAVY, soft: "#E8EEF7" },
-          { Icon: Banknote, label: "Value per unit", value: fmt(fin.vpu), c: WARN, soft: "#FBF3E2" },
-        ].map((s) => (
-          <div
-            key={s.label}
-            style={{
-              background: "#fff",
-              border: "1px solid " + LINE,
-              borderRadius: 18,
-              padding: 14,
-              boxShadow: "0 1px 2px rgba(12,27,42,0.05), 0 6px 18px rgba(12,27,42,0.05)",
-            }}
-          >
-            <div style={{ width: 34, height: 34, borderRadius: 11, background: s.soft, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-              <s.Icon size={18} color={s.c} />
-            </div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#5A6675" }}>{s.label}</div>
-            <div style={{ fontFamily: MONO, fontSize: 14.5, fontWeight: 800, color: INK, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
-              {s.value}
-            </div>
-          </div>
-        ))}
-      </div>
+      <Card pad={4}>
+        <Row left="Fish sales" right={fmt(fin.grossSales)} />
+        <Row left="Fixed expenses" right={"− " + fmt(fin.fixedTotal)} />
+        <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
+        {fin.positionsTotal > 0 && fin.beforeSplit && (
+          <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
+        )}
+        <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+        <Row left="Pot to split" right={fmt(fin.potForSplit)} strong />
+        <Row left="Value per unit" right={fmt(fin.vpu)} strong color={NAVY} />
+      </Card>
 
       <SplitCard fin={fin} />
 
       {showSea && (
         <Modal title="Sea conditions — Adina" onClose={() => setShowSea(false)}>
-          <Card pad={16} style={{ background: v.col + "14", border: "1px solid " + v.col + "33" }}>
-            <div style={{ fontSize: 30, fontWeight: 900, color: v.col, letterSpacing: 0.5 }}>{v.label}</div>
+          <Card pad={14} style={{ borderLeft: "4px solid " + v.col }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: v.col }}>{v.label}</div>
             <div style={{ fontSize: 14.5, color: INK, marginTop: 4 }}>{v.msg || "Checking the sea…"}</div>
           </Card>
           <Card pad={6}>
@@ -633,6 +1894,9 @@ function HomeTabV2({ state, fin, openSale, openExpense }) {
             <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Waves size={18} color={NAVY} /> Waves</span>} right={wx.status === "loading" ? "…" : wx.wave + " m"} />
             <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><CloudRain size={18} color={NAVY} /> Rain</span>} right={wx.status === "loading" ? "…" : wx.rain + " mm"} />
           </Card>
+          <div style={{ fontSize: 13.5, color: "#5A6675", padding: "0 4px 6px" }}>
+            <b>Guide:</b> waves under 1.2 m and wind under 20 km/h are safe. Over 2 m or 30 km/h, stay ashore.
+          </div>
           {wx.status === "demo" && (
             <div style={{ fontSize: 13.5, color: "#5A6675", padding: "0 4px 6px" }}>
               <b>Offline.</b> Showing saved demo conditions — live data returns when connection is back.
@@ -686,25 +1950,13 @@ function HistoryTabV2({ state, fin, openSale, openExpense, removeSale, removeExp
         <Row left="Fixed expenses" right={"− " + fmt(fin.fixedTotal)} />
         <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
         <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-        <Row left="Net pot" right={fmt(fin.netPot)} strong />
         {fin.positionsTotal > 0 && fin.beforeSplit && (
           <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
         )}
+        <Row left="Net pot" right={fmt(fin.netPot)} strong />
         <Row left="Pot to split" right={fmt(fin.potForSplit)} strong color={NAVY} />
       </Card>
 
-      {fin.positionsTotal > 0 && fin.beforeSplit && (
-        <Card style={{ background: "#FBF3E2", border: "1px solid #EAD9A0" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <Info size={20} color={WARN} style={{ flexShrink: 0, marginTop: 2 }} />
-            <div style={{ fontSize: 13.5, color: "#6B4E00" }}>
-              <b>Confirm with owner:</b> position pay is being taken off the whole pot before the split,
-              so the owner's half also helps fund it. If positions should come only from the workers'
-              half instead, this needs to change.
-            </div>
-          </div>
-        </Card>
-      )}
 
       <SplitCard fin={fin} />
 
@@ -814,7 +2066,7 @@ function HistoryTabV2({ state, fin, openSale, openExpense, removeSale, removeExp
   );
 }
 
-/* ---------------- Weather (redesigned) ---------------- */
+/* -------- Weather (redesigned) -------- */
 function WeatherTabV2() {
   const wx = useSea();
   const verdict = seaVerdict(wx);
@@ -864,53 +2116,23 @@ function WeatherTabV2() {
 }
 
 /* ---------------- More (redesigned) ---------------- */
-function MoreTabV2({ state, fin, onCloseSeason, onReset }) {
+function MoreTabV2({ state, fin, onCloseSeason, onReset, bio }) {
   const [confirm, setConfirm] = useState(false);
   return (
     <div>
-      <div
-        style={{
-          background: "linear-gradient(135deg, #0A2238 0%, " + DEEP + " 100%)",
-          borderRadius: 20,
-          padding: "18px 18px 16px",
-          marginBottom: 12,
-          color: "#fff",
-          boxShadow: "0 10px 24px rgba(10,34,56,0.22)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 15, background: "rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Anchor size={26} color={"#fff"} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>{state.company.name}</div>
-            <div style={{ fontSize: 13.5, opacity: 0.8, marginTop: 1 }}>
-              Owner: {state.company.owner || "—"}
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 12px" }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.75 }}>Owner's split</div>
-            <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 800, marginTop: 1 }}>{fin.ownerPct}%</div>
-          </div>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 12px" }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.75 }}>Crew</div>
-            <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 800, marginTop: 1 }}>{state.workers.length} · {fin.totalUnits} units</div>
-          </div>
-        </div>
-      </div>
-
-      <Card>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1.2, marginBottom: 6 }}>SEASON</div>
+      <Card pad={14}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{state.company.name}</div>
+        <div style={{ fontSize: 13.5, color: "#5A6675", marginTop: 1 }}>Owner: {state.company.owner || "\u2014"}</div>
+        <div style={{ borderTop: "1px solid " + LINE, margin: "10px 0" }} />
         <Row left="Season" right={state.season.name} />
         <Row left="Started" right={fmtDate(state.season.start)} />
+        <Row left="Crew" right={state.workers.length + " workers · " + fin.totalUnits + " units"} />
         <Row left="Expense types" right={String(state.expenseCats.length)} />
       </Card>
 
       {state.positions.length > 0 && (
         <Card>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1.2, marginBottom: 6 }}>POSITIONS</div>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1, marginBottom: 4 }}>POSITIONS</div>
           {state.positions.map((p) => {
             const holders = state.workers.filter((w) => w.positionId === p.id).map((w) => w.name);
             return (
@@ -924,9 +2146,36 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset }) {
         </Card>
       )}
 
+      {bio && (
+        <Card>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1, marginBottom: 4 }}>UNLOCK</div>
+          <Row left="Face / fingerprint unlock" right={bio.enrolled ? "On" : "Off"} />
+          {bio.enrolled ? (
+            <div>
+              <div style={{ fontSize: 13.5, color: "#5A6675", marginBottom: 8 }}>
+                Your phone unlocks VaultStack with Face ID, Touch ID or fingerprint. Your PIN keeps working too.
+              </div>
+              <Btn label="Turn off" kind="danger" small onClick={bio.onDisable} />
+            </div>
+          ) : bio.supported ? (
+            <div>
+              <div style={{ fontSize: 13.5, color: "#5A6675", marginBottom: 8 }}>
+                Unlock VaultStack with your face or fingerprint instead of typing your PIN. Your phone
+                confirms it is you — fingerprint data never leaves the device.
+              </div>
+              <Btn label={bio.busy ? "Waiting…" : "Turn on"} small disabled={bio.busy} onClick={bio.onEnable} />
+            </div>
+          ) : (
+            <div style={{ fontSize: 13.5, color: "#5A6675" }}>
+              Not available on this device or browser. Your PIN still protects the app.
+            </div>
+          )}
+        </Card>
+      )}
+
       {state.pastSeasons.length > 0 && (
         <Card>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1.2, marginBottom: 6 }}>PAST SEASONS</div>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1, marginBottom: 4 }}>PAST SEASONS</div>
           {state.pastSeasons.map((p, i) => (
             <Row key={i} left={p.name} right={"Net pot " + fmt(p.netPot)} />
           ))}
@@ -934,7 +2183,7 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset }) {
       )}
       <Btn label="Close this season" kind="danger" onClick={() => setConfirm(true)} />
       <div style={{ height: 10 }} />
-      <Btn label="Reset demo (erase all data)" kind="quiet" onClick={onReset} />
+      <Btn label="Erase all data and start over" kind="quiet" onClick={onReset} />
 
       {confirm && (
         <Modal title="Close the season?" onClose={() => setConfirm(false)}>
@@ -954,7 +2203,7 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset }) {
               );
             })}
             <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-            <Row left="Owner's half" right={fmt(fin.ownerHalf)} strong />
+            <Row left="Pot to split" right={fmt(fin.potForSplit)} strong />
           </Card>
           <Btn
             label="Yes, close season"
@@ -970,470 +2219,7 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset }) {
 }
 
 /* ---------------- App shell (redesigned) ---------------- */
-function VaultStackV2() {
-  const [state, setState] = useState(null);
-  const [locked, setLocked] = useState(false);
-  const [pinErr, setPinErr] = useState("");
-  const [tab, setTab] = useState("home");
-  const [flow, setFlow] = useState(null);
-  const [expCat, setExpCat] = useState(null);
-  const [expSession, setExpSession] = useState([]);
-  const [newCatName, setNewCatName] = useState("");
-  const [toastMsg, setToastMsg] = useState(null);
-  const [saveStamp, setSaveStamp] = useState(null);
-  const saveTimer = useRef(null);
-  const toastTimer = useRef(null);
-  const firstRender = useRef(true);
 
-  useEffect(() => {
-    (async () => {
-      const saved = normalizeState(await loadSaved());
-      if (saved && saved.setupDone) {
-        setState(saved);
-        setLocked(Boolean(saved.pin));
-      } else {
-        setState(saved || blankState());
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (state === null) return;
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveStamp("saving");
-    saveTimer.current = setTimeout(async () => {
-      const ok = await persist(state);
-      setSaveStamp(ok ? new Date() : "error");
-    }, 450);
-    return () => saveTimer.current && clearTimeout(saveTimer.current);
-  }, [state]);
-
-  const toast = (msg) => {
-    setToastMsg(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(null), 2000);
-  };
-
-  const fin = useMemo(() => (state ? computeFinancials(state) : null), [state]);
-
-  if (state === null)
-    return (
-      <div style={{ fontFamily: baseFont, padding: 40, textAlign: "center", color: "#5A6675" }}>
-        Opening VaultStack…
-      </div>
-    );
-
-  const addSale = (s) => setState((st) => ({ ...st, sales: [...st.sales, s] }));
-  const addExpense = (e) => setState((st) => ({ ...st, expenses: [...st.expenses, e] }));
-  const removeSale = (id) => setState((st) => ({ ...st, sales: st.sales.filter((x) => x.id !== id) }));
-  const removeExpense = (id) => setState((st) => ({ ...st, expenses: st.expenses.filter((x) => x.id !== id) }));
-  const addLoan = (wid, loan) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: [...w.loans, loan] } : w)),
-    }));
-  const addPayment = (wid, pay) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: [...w.payments, pay] } : w)),
-    }));
-  const addAdjustment = (wid, adj) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: [...w.adjustments, adj] } : w)),
-    }));
-  const removeLoan = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: w.loans.filter((x) => x.id !== id) } : w)),
-    }));
-  const removePayment = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: w.payments.filter((x) => x.id !== id) } : w)),
-    }));
-  const removeAdjustment = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: w.adjustments.filter((x) => x.id !== id) } : w)),
-    }));
-  const resolveCategory = (raw) => {
-    const name = raw.trim();
-    const existing = state.expenseCats.find((c) => c.toLowerCase() === name.toLowerCase());
-    if (existing) return existing;
-    setState((st) => ({ ...st, expenseCats: [...st.expenseCats, name] }));
-    return name;
-  };
-  const closeSeason = () =>
-    setState((st) => {
-      const f = computeFinancials(st);
-      const settlements = st.workers.map((w) => {
-        const k = workerNumbers(st, w, f);
-        return { name: w.name, payout: k.payout };
-      });
-      const nextYear = new Date().getFullYear();
-      return {
-        ...st,
-        pastSeasons: [
-          ...st.pastSeasons,
-          { name: st.season.name, netPot: f.netPot, ownerHalf: f.ownerHalf, settlements },
-        ],
-        season: { ...st.season, name: "New Season " + nextYear, start: todayISO() },
-        sales: [],
-        expenses: [],
-        workers: st.workers.map((w) => {
-          const k = workerNumbers(st, w, f);
-          return { ...w, carriedDebt: k.payout < 0 ? -k.payout : 0, loans: [], payments: [], adjustments: [] };
-        }),
-      };
-    });
-  const resetAll = async () => {
-    await wipeSaved();
-    firstRender.current = true;
-    setState(blankState());
-    setLocked(false);
-    setTab("home");
-    setFlow(null);
-  };
-
-  const shell = (children) => (
-    <div
-      style={{
-        fontFamily: baseFont,
-        background: MIST,
-        height: "100%",
-        maxWidth: 430,
-        margin: "0 auto",
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {children}
-    </div>
-  );
-
-  if (!state.setupDone)
-    return shell(
-      <div style={{ background: "#fff", flex: 1, overflowY: "auto" }}>
-        <Onboarding
-          onFinish={(d) => { setState(d); setTab("home"); }}
-          onDemo={() => { setState(demoState()); setLocked(true); }}
-        />
-      </div>
-    );
-
-  if (locked)
-    return shell(
-      <div style={{ background: "#fff", flex: 1, overflowY: "auto" }}>
-        <PinPad
-          title="Enter your PIN"
-          subtitle={state.company.name}
-          errorMsg={pinErr}
-          onComplete={(d) => {
-            if (d === state.pin) { setLocked(false); setPinErr(""); }
-            else setPinErr("Wrong PIN. Try again.");
-          }}
-        />
-      </div>
-    );
-
-  const tabs = [
-    { id: "home", Icon: Home, label: "Home" },
-    { id: "history", Icon: Banknote, label: "History" },
-    { id: "workers", Icon: Users, label: "Workers" },
-    { id: "weather", Icon: Waves, label: "Weather" },
-    { id: "more", Icon: Settings, label: "More" },
-  ];
-
-  const openSale = () => setFlow("sale");
-  const openExpense = () => { setExpSession([]); setFlow("expense-cat"); };
-
-  const availableCats = state.expenseCats.filter(
-    (c) => !expSession.some((s) => s.cat.toLowerCase() === c.toLowerCase())
-  );
-  const sessionTotal = expSession.reduce((s, x) => s + x.amount, 0);
-
-  return shell(
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-      <div
-        style={{
-          background: "linear-gradient(135deg, #0A2238 0%, " + DEEP + " 60%, #123B63 100%)",
-          color: "#fff",
-          padding: "14px 18px 13px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexShrink: 0,
-          boxShadow: "0 4px 16px rgba(10,34,56,0.25)",
-        }}
-      >
-        <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 9, letterSpacing: "-0.2px" }}>
-          <span
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 10,
-              background: "rgba(255,255,255,0.14)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Anchor size={17} strokeWidth={2.4} />
-          </span>
-          VaultStack
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 11.5, opacity: 0.75, fontWeight: 600 }}>
-            {saveStamp === "saving" ? "Saving…" : saveStamp === "error" ? "Not saved" : "Saved on this phone"}
-          </span>
-          <button
-            onClick={() => setLocked(true)}
-            title="Lock app"
-            style={{
-              background: "rgba(255,255,255,0.15)",
-              border: "none",
-              color: "#fff",
-              borderRadius: 9,
-              padding: "7px 11px",
-              fontSize: 12.5,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Lock size={13} /> Lock
-          </button>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, padding: 14, overflowY: "auto", minHeight: 0 }}>
-        {tab === "home" && <HomeTab state={state} fin={fin} openSale={openSale} openExpense={openExpense} />}
-        {tab === "history" && (
-          <HistoryTab
-            state={state}
-            fin={fin}
-            openSale={openSale}
-            openExpense={openExpense}
-            removeSale={removeSale}
-            removeExpense={removeExpense}
-            toast={toast}
-          />
-        )}
-        {tab === "workers" && (
-          <WorkersTab
-            state={state}
-            fin={fin}
-            addLoan={addLoan}
-            addPayment={addPayment}
-            addAdjustment={addAdjustment}
-            removeLoan={removeLoan}
-            removePayment={removePayment}
-            removeAdjustment={removeAdjustment}
-            toast={toast}
-          />
-        )}
-        {tab === "weather" && <WeatherTab />}
-        {tab === "more" && <MoreTab state={state} fin={fin} onCloseSeason={closeSeason} onReset={resetAll} />}
-      </div>
-
-      {flow === "sale" && (
-        <KeypadSheet
-          title="Log a fish sale"
-          HeaderIcon={Fish}
-          subtitle="How much money did you receive?"
-          confirmLabel="Save sale"
-          onClose={() => setFlow(null)}
-          onSave={({ amount, date }) => {
-            addSale({ id: uid(), date, amount, note: "", createdAt: new Date().toISOString() });
-            setFlow(null);
-            toast("Sale saved · " + fmt(amount));
-          }}
-        />
-      )}
-
-      {flow === "expense-cat" && (
-        <Modal title="What did you pay for?" onClose={() => setFlow(null)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {availableCats.map((name) => {
-              const Icon = catIcon(name);
-              return (
-                <button
-                  key={name}
-                  onClick={() => { setExpCat(name); setFlow("expense-amt"); }}
-                  style={{
-                    padding: "18px 8px",
-                    borderRadius: 16,
-                    border: "1px solid " + LINE,
-                    background: "#fff",
-                    boxShadow: "0 1px 3px rgba(12,27,42,0.06)",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <Icon size={28} color={NAVY} strokeWidth={2.2} />
-                  <span style={{ fontWeight: 800, fontSize: 15, color: INK }}>{name}</span>
-                </button>
-              );
-            })}
-            <button
-              onClick={() => { setNewCatName(""); setFlow("expense-name"); }}
-              style={{
-                padding: "18px 8px",
-                borderRadius: 16,
-                border: "2px dashed " + NAVY,
-                background: "#fff",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <Plus size={28} color={NAVY} strokeWidth={2.2} />
-              <span style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>Other</span>
-            </button>
-          </div>
-
-          {expSession.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: NAVY, marginBottom: 4 }}>Logged just now</div>
-              {expSession.map((s, i) => {
-                const SIcon = catIcon(s.cat);
-                return (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 15.5, color: "#4A5568" }}>
-                      <Check size={17} color={GOOD} strokeWidth={3} /> <SIcon size={17} color={NAVY} /> {s.cat}
-                    </span>
-                    <span style={{ fontFamily: MONO, fontWeight: 800, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>− {fmt(s.amount)}</span>
-                  </div>
-                );
-              })}
-              <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-              <Row left="Total this sitting" right={"− " + fmt(sessionTotal)} strong />
-              <div style={{ height: 10 }} />
-              <Btn label={<><Check size={20} /> Done</>} onClick={() => setFlow(null)} />
-            </div>
-          )}
-        </Modal>
-      )}
-
-      {flow === "expense-name" && (
-        <Modal title="Name this expense" onClose={() => setFlow("expense-cat")}>
-          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>
-            Give it a name once. It will be saved as a button for next time.
-          </div>
-          <Field label="What is it called?" value={newCatName} onChange={setNewCatName} placeholder="e.g. Net mending" />
-          <Btn
-            label="Next"
-            disabled={!newCatName.trim()}
-            onClick={() => {
-              const finalName = resolveCategory(newCatName);
-              setExpCat(finalName);
-              setFlow("expense-amt");
-            }}
-          />
-        </Modal>
-      )}
-
-      {flow === "expense-amt" && (
-        <KeypadSheet
-          title={"Expense: " + expCat}
-          HeaderIcon={catIcon(expCat)}
-          subtitle="How much did you pay?"
-          confirmLabel="Save expense"
-          onClose={() => setFlow("expense-cat")}
-          onSave={({ amount, date }) => {
-            addExpense({ id: uid(), date, amount, category: expCat, createdAt: new Date().toISOString() });
-            setExpSession((prev) => [...prev, { cat: expCat, amount }]);
-            toast(expCat + " saved · " + fmt(amount));
-            setFlow("expense-cat");
-          }}
-        />
-      )}
-
-      {toastMsg && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 84,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: INK,
-            color: "#fff",
-            padding: "12px 18px",
-            borderRadius: 999,
-            fontSize: 14.5,
-            fontWeight: 800,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            zIndex: 60,
-            whiteSpace: "nowrap",
-            boxShadow: "0 10px 26px rgba(12,27,42,0.35)",
-          }}
-        >
-          <Check size={18} color="#7BE495" /> {toastMsg}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          borderTop: "1px solid " + LINE,
-          background: "#fff",
-          flexShrink: 0,
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          boxShadow: "0 -6px 20px rgba(12,27,42,0.06)",
-        }}
-      >
-        {tabs.map(({ id, Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => { setTab(id); setFlow(null); }}
-            style={{
-              flex: 1,
-              padding: "10px 0 10px",
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              color: tab === id ? NAVY : "#8A94A3",
-              fontWeight: tab === id ? 800 : 600,
-              fontSize: 12,
-              fontFamily: baseFont,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 3,
-            }}
-          >
-            <Icon size={22} strokeWidth={tab === id ? 2.6 : 2} color={tab === id ? NAVY : "#8A94A3"} />
-            {label}
-            <div style={{ width: 20, height: 3, background: tab === id ? GOLD : "transparent", borderRadius: 99 }} />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ---- rebind tab identifiers to the redesigned components ---- */
-HomeTab = HomeTabV2;
-HistoryTab = HistoryTabV2;
-WorkersTab = WorkersTabV2;
-WeatherTab = WeatherTabV2;
-MoreTab = MoreTabV2;
-VaultStack = VaultStackV2;
 
 /* ---------------- Workers (crew) ---------------- */
 function WorkersTabV2({
@@ -1477,7 +2263,7 @@ function WorkersTabV2({
     return (h.kind === "bonus" ? "Bonus" : "Deduction") + (h.reason ? " · " + h.reason : "");
   };
   const histAmount = (h) =>
-    h.k === "adj" && h.kind === "bonus" ? "+ " + fmt(h.amount) : "− " + fmt(h.amount);
+    h.k === "adj" && h.kind === "bonus" ? "+ " + fmt(h.amount) : "\u2212 " + fmt(h.amount);
 
   const crewTotal = state.workers.reduce((s, wk) => {
     const k = workerNumbers(state, wk, fin);
@@ -1490,38 +2276,14 @@ function WorkersTabV2({
 
   return (
     <div>
-      <div
-        style={{
-          background: "linear-gradient(135deg, #0A2238 0%, " + DEEP + " 100%)",
-          borderRadius: 20,
-          padding: "16px 18px",
-          marginBottom: 12,
-          color: "#fff",
-          boxShadow: "0 10px 24px rgba(10,34,56,0.22)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.4, opacity: 0.7 }}>CREW</div>
-            <div style={{ fontSize: 17, fontWeight: 800, marginTop: 2 }}>
-              {state.workers.length} workers · {fin.totalUnits} units
-            </div>
-          </div>
-          <Users size={26} color={"rgba(255,255,255,0.85)"} />
+      <Card pad={12}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 800, color: INK }}>Crew · {state.workers.length} workers</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#5A6675", whiteSpace: "nowrap" }}>{fin.totalUnits} units</div>
         </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 12px" }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.75 }}>To pay out</div>
-            <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 800, marginTop: 1 }}>{fmt(crewTotal)}</div>
-          </div>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: "8px 12px" }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.75 }}>In debt</div>
-            <div style={{ fontFamily: MONO, fontSize: 15, fontWeight: 800, marginTop: 1, color: crewDebt > 0 ? "#FFB4A8" : "#fff" }}>
-              {fmt(crewDebt)}
-            </div>
-          </div>
-        </div>
-      </div>
+        <Row left="To pay out" right={fmt(crewTotal)} strong color={SEA} />
+        <Row left="Owing to the boat" right={fmt(crewDebt)} strong color={crewDebt > 0 ? BAD : INK} />
+      </Card>
 
       {state.workers.map((wk) => {
         const k = workerNumbers(state, wk, fin);
@@ -1540,7 +2302,7 @@ function WorkersTabV2({
               <Avatar name={wk.name} size={44} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontWeight: 900, fontSize: 16.5 }}>{wk.name}</span>
+                  <span style={{ fontWeight: 800, fontSize: 16 }}>{wk.name}</span>
                   {pn && <Star size={14} color={GOLD} fill={GOLD} />}
                 </div>
                 <div style={{ fontSize: 12.5, color: "#5A6675", marginTop: 1 }}>
@@ -1553,6 +2315,7 @@ function WorkersTabV2({
               />
             </div>
             <div style={{ borderTop: "1px solid " + LINE, paddingTop: 8 }}>
+              <Row left="Share so far" right={fmt(k.grossShare)} />
               <Row left="Will take home" right={fmt(k.payout)} strong color={k.payout < 0 ? BAD : SEA} />
               <Row left="Can still borrow" right={fmt(k.borrowLimit)} />
             </div>
@@ -1565,13 +2328,14 @@ function WorkersTabV2({
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
             <Avatar name={w.name} size={52} />
             <div>
-              <div style={{ fontWeight: 900, fontSize: 18 }}>{w.name}</div>
+              <div style={{ fontWeight: 800, fontSize: 18 }}>{w.name}</div>
               <div style={{ fontSize: 13.5, color: "#5A6675" }}>
                 {posName ? posName + " · " : ""}{w.units} of {fin.totalUnits} units
               </div>
             </div>
           </div>
           <Card pad={14} style={{ background: MIST, border: "none" }}>
+            <Row left="Value per unit" right={fmt(fin.vpu)} />
             <Row left={"Share from units (" + w.units + " × " + fmt(fin.vpu) + ")"} right={fmt(n.unitShare)} />
             {n.posPay > 0 && <Row left={"Position pay (" + posName + ")"} right={"+ " + fmt(n.posPay)} />}
             <Row left="Bonuses" right={"+ " + fmt(n.bonusTotal)} />
@@ -1603,7 +2367,7 @@ function WorkersTabV2({
           {histRows.length > 0 && (
             <div style={{ marginTop: 18 }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>History</div>
-              <div style={{ fontSize: 13, color: "#8A94A3", marginBottom: 4 }}>Tap an entry to remove it.</div>
+              <div style={{ fontSize: 13, color: "#5A6675", marginBottom: 4 }}>Tap an entry to remove it.</div>
               {histRows.map((h) => (
                 <div
                   key={h.id}
@@ -1616,13 +2380,13 @@ function WorkersTabV2({
                     cursor: "pointer",
                   }}
                 >
-                  <span style={{ fontSize: 15.5, color: "#4A5568" }}>
+                  <span style={{ fontSize: 15.5, color: "#46505C" }}>
                     {histLabel(h)} · {fmtDate(h.date)}
                   </span>
                   <span
                     style={{
-                      fontFamily: MONO,
-                      fontWeight: 800,
+                      fontFamily: MONO2,
+                      fontWeight: 700,
                       fontSize: 14,
                       fontVariantNumeric: "tabular-nums",
                       color: h.k === "adj" && h.kind === "bonus" ? GOOD : INK,
@@ -1673,10 +2437,10 @@ function WorkersTabV2({
                 onClick={() => { setPayDesc(g); setSub("pay-amt"); }}
                 style={{
                   padding: "16px 8px",
-                  borderRadius: 14,
-                  border: "2px solid " + LINE,
+                  borderRadius: 10,
+                  border: "1px solid " + LINE,
                   background: "#fff",
-                  fontWeight: 800,
+                  fontWeight: 700,
                   fontSize: 15.5,
                   color: INK,
                   cursor: "pointer",
@@ -1725,10 +2489,10 @@ function WorkersTabV2({
                 onClick={() => { setAdjReason(r); setSub("adj-amt"); }}
                 style={{
                   padding: "16px 8px",
-                  borderRadius: 14,
-                  border: "2px solid " + LINE,
+                  borderRadius: 10,
+                  border: "1px solid " + LINE,
                   background: "#fff",
-                  fontWeight: 800,
+                  fontWeight: 700,
                   fontSize: 15.5,
                   color: INK,
                   cursor: "pointer",
@@ -1764,11 +2528,11 @@ function WorkersTabV2({
           <pre
             style={{
               background: MIST,
-              borderRadius: 12,
+              borderRadius: 10,
               padding: 14,
               fontSize: 13.5,
               whiteSpace: "pre-wrap",
-              fontFamily: "ui-monospace, Menlo, monospace",
+              fontFamily: MONO2,
               color: INK,
             }}
           >
@@ -1808,337 +2572,6 @@ function WorkersTabV2({
   );
 }
 
-/* ---------------- tiny UI kit ---------------- */
-
-function Btn({ label, onClick, kind = "primary", full = true, small = false, disabled = false }) {
-  const styles = {
-    primary: {
-      background: "linear-gradient(135deg, #16497A 0%, " + NAVY + " 55%, " + DEEP + " 100%)",
-      color: "#fff",
-      border: "none",
-      boxShadow: "0 8px 20px rgba(14,46,78,0.28)",
-    },
-    ghost: { background: "#fff", color: NAVY, border: "2px solid " + NAVY },
-    quiet: { background: MIST, color: INK, border: "2px solid " + MIST },
-    danger: { background: "#fff", color: BAD, border: "2px solid " + BAD },
-    dangerSolid: {
-      background: "linear-gradient(135deg, #C74B3D 0%, " + BAD + " 100%)",
-      color: "#fff",
-      border: "none",
-      boxShadow: "0 8px 20px rgba(192,57,43,0.25)",
-    },
-  }[kind];
-  return (
-    <button
-      onClick={disabled ? undefined : onClick}
-      style={{
-        ...styles,
-        opacity: disabled ? 0.45 : 1,
-        width: full ? "100%" : "auto",
-        padding: small ? "10px 14px" : "16px 18px",
-        borderRadius: 14,
-        fontSize: small ? 15 : 18,
-        fontWeight: 700,
-        fontFamily: baseFont,
-        cursor: disabled ? "default" : "pointer",
-        touchAction: "manipulation",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        transition: "transform 0.12s ease, filter 0.12s ease",
-      }}
-      onPointerDown={(e) => { if (!disabled) e.currentTarget.style.filter = "brightness(1.08)"; }}
-      onPointerUp={(e) => { e.currentTarget.style.filter = ""; }}
-      onPointerLeave={(e) => { e.currentTarget.style.filter = ""; }}
-    >
-      {label}
-    </button>
-  );
-}
-
-function Card({ children, pad = 16, style = {}, onClick }) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        background: "#fff",
-        border: "1px solid " + LINE,
-        borderRadius: 18,
-        padding: pad,
-        marginBottom: 12,
-        boxShadow: "0 1px 2px rgba(12,27,42,0.05), 0 6px 18px rgba(12,27,42,0.05)",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Money({ children, size = 20 }) {
-  return (
-    <span
-      style={{
-        fontFamily: '"JetBrains Mono", ui-monospace, Menlo, monospace',
-        fontSize: size,
-        fontVariantNumeric: "tabular-nums",
-        letterSpacing: "-0.02em",
-      }}
-    >
-      {children}
-    </span>
- );
-}
-
-function Row({ left, right, strong = false, color }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        gap: 10,
-        padding: "7px 0",
-        fontSize: strong ? 18 : 15.5,
-        fontWeight: strong ? 800 : 500,
-        color: color || INK,
-      }}
-    >
-      <span style={{ color: strong ? color || INK : "#4A5568" }}>{left}</span>
-      <Money size={strong ? 18 : 15.5}>{right}</Money>
-    </div>
-  );
-}
-
-function Field({ label, value, onChange, type = "text", placeholder = "", inputMode }) {
-  return (
-    <label style={{ display: "block", marginBottom: 14 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 6 }}>{label}</div>          <input
-        type={type}
-        inputMode={inputMode}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%",
-          boxSizing: "border-box",
-          padding: "14px 14px",
-          fontSize: 17,
-          border: "2px solid " + LINE,
-          borderRadius: 12,
-          fontFamily: baseFont,
-          outline: "none",
-          background: "#FBFCFE",
-          color: INK,
-        }}
-        onFocus={(e) => {
-          e.target.style.borderColor = GOLD;
-          e.target.style.boxShadow = "0 0 0 3px rgba(217,164,65,0.22)";
-        }}
-        onBlur={(e) => {
-          e.target.style.borderColor = LINE;
-          e.target.style.boxShadow = "none";
-        }}
-      />
-    </label>
-  );
-}
-
-function Modal({ title, onClose, children }) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(16,20,24,0.55)",
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-        zIndex: 50,
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "#fff",
-          width: "100%",
-          maxWidth: 430,
-          maxHeight: "90vh",
-          overflowY: "auto",
-          borderRadius: "24px 24px 0 0",
-          padding: "10px 18px 26px",
-          boxSizing: "border-box",
-          boxShadow: "0 -12px 40px rgba(12,27,42,0.25)",
-          paddingBottom: "calc(26px + env(safe-area-inset-bottom, 0px))",
-        }}
-      >
-        <div
-          style={{
-            width: 44,
-            height: 5,
-            borderRadius: 99,
-            background: LINE,
-            margin: "6px auto 12px",
-          }}
-        />
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 14,
-          }}
-        >
-          <div style={{ fontSize: 19, fontWeight: 800, color: INK }}>{title}</div>
-          <button
-            onClick={onClose}
-            style={{
-              border: "none",
-              background: MIST,
-              borderRadius: 10,
-              padding: "8px 12px",
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Close
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Pill({ text, tone = "neutral" }) {
-  const map = {
-    neutral: { bg: MIST, fg: "#3D4754" },
-    good: { bg: "#E3F3EE", fg: GOOD },
-    warn: { bg: "#FBF3E2", fg: WARN },
-    bad: { bg: "#FDECEA", fg: BAD },
-    navy: { bg: "#E8EEF7", fg: NAVY },
-  }[tone];
-  return (
-    <span
-      style={{
-        background: map.bg,
-        color: map.fg,
-        fontSize: 12.5,
-        fontWeight: 800,
-        padding: "4px 10px",
-        borderRadius: 999,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
-}
-
-/* ---------------- shared keypad key ---------------- */
-function Key({ children, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "16px 0",
-        fontSize: 23,
-        fontWeight: 800,
-        borderRadius: 14,
-        border: "1px solid " + LINE,
-        background: "#fff",
-        color: INK,
-        cursor: "pointer",
-        touchAction: "manipulation",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 1px 3px rgba(12,27,42,0.07)",
-        transition: "background 0.1s ease",
-      }}
-      onPointerDown={(e) => { e.currentTarget.style.background = MIST; }}
-      onPointerUp={(e) => { e.currentTarget.style.background = "#fff"; }}
-      onPointerLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ---------------- PIN pad ---------------- */
-function PinPad({ title, subtitle, onComplete, errorMsg }) {
-  const [digits, setDigits] = useState("");
-  useEffect(() => {
-    if (digits.length === 4) {
-      const d = digits;
-      setDigits("");
-      onComplete(d);
-    }
-  }, [digits, onComplete]);
-  const press = (k) => {
-    if (k === "del") setDigits((d) => d.slice(0, -1));
-    else if (digits.length < 4) setDigits((d) => d + k);
-  };
-  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"];
-  return (
-    <div style={{ textAlign: "center", padding: "30px 22px" }}>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: 18,
-            background: MIST,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Lock size={30} color={NAVY} strokeWidth={2.4} />
-        </div>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: INK }}>{title}</div>
-      <div style={{ fontSize: 15, color: "#5A6675", margin: "6px 0 18px" }}>{subtitle}</div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 14, marginBottom: 8 }}>
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: 999,
-              border: "2.5px solid " + NAVY,
-              background: i < digits.length ? NAVY : "transparent",
-            }}
-          />
-        ))}
-      </div>
-      <div style={{ height: 22, color: BAD, fontSize: 14, fontWeight: 700 }}>{errorMsg || ""}</div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 12,
-          maxWidth: 300,
-          margin: "0 auto",
-        }}
-      >
-        {keys.map((k, i) =>
-          k === "" ? (
-            <div key={i} />
-          ) : (
-            <Key key={i} onClick={() => press(k)}>
-              {k === "del" ? <Delete size={22} /> : k}
-            </Key>
-          )
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ---------------- KeypadSheet: MoMo-style amount entry ---------------- */
 function KeypadSheet({
@@ -2387,1410 +2820,8 @@ function fallbackCopy(text) {
 }
 
 /* ---------------- Onboarding wizard ---------------- */
-function Onboarding({ onFinish, onDemo }) {
-  const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState(blankState());
-  const [fxName, setFxName] = useState("");
-  const [fxAmt, setFxAmt] = useState("");
-  const [posName, setPosName] = useState("");
-  const [posPay, setPosPay] = useState("");
-  const [wkName, setWkName] = useState("");
-  const [wkUnits, setWkUnits] = useState("");
-  const [wkPhone, setWkPhone] = useState("");
-  const [wkDebt, setWkDebt] = useState("");
-  const [wkPos, setWkPos] = useState(null);
-  const [pinFirst, setPinFirst] = useState(null);
-  const [pinErr, setPinErr] = useState("");
 
-  const setCo = (k, v) => setDraft((d) => ({ ...d, company: { ...d.company, [k]: v } }));
-  const setSe = (k, v) => setDraft((d) => ({ ...d, season: { ...d.season, [k]: v } }));
-
-  const addFixed = () => {
-    if (!fxName.trim() || !Number(fxAmt)) return;
-    setDraft((d) => ({
-      ...d,
-      season: {
-        ...d.season,
-        fixed: [...d.season.fixed, { id: uid(), name: fxName.trim(), amount: Number(fxAmt) }],
-      },
-    }));
-    setFxName("");
-    setFxAmt("");
-  };
-  const addPosition = () => {
-    if (!posName.trim() || !Number(posPay)) return;
-    setDraft((d) => ({
-      ...d,
-      positions: [...d.positions, { id: uid(), name: posName.trim(), pay: Number(posPay) }],
-    }));
-    setPosName("");
-    setPosPay("");
-  };
-  const addWorker = () => {
-    if (!wkName.trim() || !Number(wkUnits)) return;
-    setDraft((d) => ({
-      ...d,
-      workers: [
-        ...d.workers,
-        {
-          id: uid(),
-          name: wkName.trim(),
-          phone: wkPhone.trim(),
-          units: Number(wkUnits),
-          positionId: wkPos,
-          carriedDebt: Number(wkDebt) || 0,
-          loans: [],
-          payments: [],
-          adjustments: [],
-        },
-      ],
-    }));
-    setWkName("");
-    setWkUnits("");
-    setWkPhone("");
-    setWkDebt("");
-    setWkPos(null);
-  };
-
-  const header = (t, s, n) => (
-    <div style={{ marginBottom: 16 }}>
-      {n && (
-        <div style={{ fontSize: 13, fontWeight: 800, color: NAVY, letterSpacing: 1 }}>{n}</div>
-      )}
-      <div style={{ fontSize: 23, fontWeight: 800, color: INK, marginTop: 4 }}>{t}</div>
-      {s && <div style={{ fontSize: 15, color: "#5A6675", marginTop: 4 }}>{s}</div>}
-    </div>
-  );
-
-  if (step === 0)
-    return (
-      <div style={{ padding: "0 26px 26px", textAlign: "center", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ background: "linear-gradient(180deg, #0A2238 0%, " + DEEP + " 100%)", margin: "0 -26px", padding: "34px 26px 46px", borderRadius: "0 0 32px 32px" }}>
-          <div
-            style={{
-              width: 84,
-              height: 84,
-              borderRadius: 26,
-              background: "linear-gradient(135deg, #FFFFFF 0%, #E8EEF7 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-              boxShadow: "0 14px 34px rgba(10,34,56,0.45)",
-            }}
-          >
-            <Anchor size={42} color={DEEP} strokeWidth={2.2} />
-          </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>
-            VaultStack
-          </div>
-          <div style={{ fontSize: 15.5, color: "rgba(255,255,255,0.82)", margin: "6px auto 0", maxWidth: 280 }}>
-            Your fishing money, kept safe and clear.
-          </div>
-        </div>
-        <div style={{ textAlign: "left", maxWidth: 320, margin: "-24px auto 0", display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-          {[
-            { Icon: Fish, text: "Log every catch and sale" },
-            { Icon: Users, text: "Split the pot fairly by units" },
-            { Icon: Waves, text: "Know the sea before you sail" },
-          ].map(({ Icon, text }) => (
-            <div key={text} style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: "1px solid " + LINE, borderRadius: 16, padding: "12px 14px", boxShadow: "0 4px 14px rgba(12,27,42,0.07)" }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#E8EEF7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Icon size={22} color={NAVY} />
-              </div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: INK }}>{text}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ flex: 1, minHeight: 18 }} />
-        <Btn label="Set up my company" onClick={() => setStep(1)} />
-        <div style={{ height: 12 }} />
-        <Btn label="Load demo data (PIN: 1234)" kind="ghost" onClick={onDemo} />
-      </div>
-    );
-
-  if (step === 7)
-    return (
-      <PinPad
-        title={pinFirst ? "Enter PIN again" : "Set a 4-number PIN"}
-        subtitle={
-          pinFirst
-            ? "Type the same PIN one more time."
-            : "Only you will open this app. Worker debts stay private."
-        }
-        errorMsg={pinErr}
-        onComplete={(d) => {
-          if (!pinFirst) {
-            setPinFirst(d);
-            setPinErr("");
-          } else if (d === pinFirst) {
-            onFinish({ ...draft, pin: d, setupDone: true });
-          } else {
-            setPinFirst(null);
-            setPinErr("PINs did not match. Start again.");
-          }
-        }}
-      />
-    );
-
-  return (
-    <div style={{ padding: 20 }}>
-      {step === 1 && (
-        <div>
-          {header("Your company", "Tell us about your business.", "STEP 1 OF 6")}
-          <Field label="Company name" value={draft.company.name} onChange={(v) => setCo("name", v)} placeholder="e.g. Selasi Fishing Co." />
-          <Field label="Owner name" value={draft.company.owner} onChange={(v) => setCo("owner", v)} placeholder="Your name" />
-          <Field label="Phone number" value={draft.company.phone} onChange={(v) => setCo("phone", v)} inputMode="tel" placeholder="024 000 0000" />
-          <Btn label="Next" onClick={() => setStep(2)} disabled={!draft.company.name.trim()} />
-        </div>
-      )}
-      {step === 2 && (
-        <div>
-          {header("Owner's split", "After expenses and positions, how is the pot divided?", "STEP 2 OF 6")}
-          <Card pad={14} style={{ background: MIST, border: "none" }}>
-            <div style={{ fontSize: 14.5, color: "#3D4754" }}>
-              The owner keeps this share for maintenance. The rest is shared among workers by units.
-              Most companies use 50.
-            </div>
-          </Card>
-          <Field
-            label="Owner's share of the pot (%)"
-            value={String(draft.company.ownerSplit)}
-            onChange={(v) => setCo("ownerSplit", v.replace(/[^\d.]/g, ""))}
-            inputMode="decimal"
-          />
-          <div style={{ fontSize: 14, color: "#5A6675", marginBottom: 14 }}>
-            Workers share the remaining {100 - (Number(draft.company.ownerSplit) || 0)}%.
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn label="Back" kind="quiet" onClick={() => setStep(1)} />
-            <Btn label="Next" onClick={() => setStep(3)} disabled={!(Number(draft.company.ownerSplit) >= 0 && Number(draft.company.ownerSplit) <= 100)} />
-          </div>
-        </div>
-      )}
-      {step === 3 && (
-        <div>
-          {header("Positions", "Roles that earn standing pay each season (optional).", "STEP 3 OF 6")}
-          {draft.positions.map((p) => (
-            <Card key={p.id} pad={12}>
-              <Row left={p.name} right={fmt(p.pay) + " / season"} />
-            </Card>
-          ))}
-          <Field label="Position name" value={posName} onChange={setPosName} placeholder="e.g. Bosun" />
-          <Field label="Pay per season (GH₵)" value={posPay} onChange={(v) => setPosPay(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
-          <Btn label="+ Add position" kind="ghost" onClick={addPosition} />
-          <div style={{ height: 12 }} />
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn label="Back" kind="quiet" onClick={() => setStep(2)} />
-            <Btn label="Next" onClick={() => setStep(4)} />
-          </div>
-        </div>
-      )}
-      {step === 4 && (
-        <div>
-          {header("Fixed expenses", "Costs for the whole season, paid before sharing.", "STEP 4 OF 6")}
-          {draft.season.fixed.map((f) => (
-            <Card key={f.id} pad={12}>
-              <Row left={f.name} right={fmt(f.amount)} />
-            </Card>
-          ))}
-          <Field label="Expense name" value={fxName} onChange={setFxName} placeholder="e.g. Net repairs" />
-          <Field label="Amount (GH₵)" value={fxAmt} onChange={(v) => setFxAmt(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
-          <Btn label="+ Add expense" kind="ghost" onClick={addFixed} />
-          <div style={{ height: 12 }} />
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn label="Back" kind="quiet" onClick={() => setStep(3)} />
-            <Btn label="Next" onClick={() => setStep(5)} />
-          </div>
-        </div>
-      )}
-      {step === 5 && (
-        <div>
-          {header("Workers & shares", "Assign units and a position if they hold one.", "STEP 5 OF 6")}
-          {draft.workers.map((w) => {
-            const p = draft.positions.find((x) => x.id === w.positionId);
-            return (
-              <Card key={w.id} pad={12}>
-                <Row
-                  left={w.name + (p ? " · " + p.name : "")}
-                  right={w.units + " units" + (w.carriedDebt ? " · owes " + fmt(w.carriedDebt) : "")}
-                />
-              </Card>
-            );
-          })}
-          <Field label="Worker name" value={wkName} onChange={setWkName} placeholder="e.g. Kofi" />
-          <Field label="Share units" value={wkUnits} onChange={(v) => setWkUnits(v.replace(/[^\d.]/g, ""))} inputMode="decimal" />
-          <Field label="Phone (for WhatsApp statements)" value={wkPhone} onChange={setWkPhone} inputMode="tel" placeholder="Optional" />
-          <Field label="Debt from last season (GH₵)" value={wkDebt} onChange={(v) => setWkDebt(v.replace(/[^\d.]/g, ""))} inputMode="decimal" placeholder="0" />
-          {draft.positions.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 6 }}>Position (optional)</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <button
-                  onClick={() => setWkPos(null)}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 12,
-                    border: "2px solid " + (wkPos === null ? NAVY : LINE),
-                    background: wkPos === null ? "#E8EEF7" : "#fff",
-                    fontWeight: 700,
-                    fontSize: 14.5,
-                    color: INK,
-                    cursor: "pointer",
-                  }}
-                >
-                  None
-                </button>
-                {draft.positions.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setWkPos(p.id)}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: "2px solid " + (wkPos === p.id ? NAVY : LINE),
-                      background: wkPos === p.id ? "#E8EEF7" : "#fff",
-                      fontWeight: 700,
-                      fontSize: 14.5,
-                      color: INK,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <Btn label="+ Add worker" kind="ghost" onClick={addWorker} />
-          <div style={{ height: 12 }} />
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn label="Back" kind="quiet" onClick={() => setStep(4)} />
-            <Btn label="Next" onClick={() => setStep(6)} disabled={draft.workers.length === 0} />
-          </div>
-        </div>
-      )}
-      {step === 6 && (
-        <div>
-          {header("Season start", "When does this season begin?", "STEP 6 OF 6")}
-          <Field label="Season name" value={draft.season.name} onChange={(v) => setSe("name", v)} placeholder="e.g. Major Season 2026" />
-          <Field label="Start date" type="date" value={draft.season.start} onChange={(v) => setSe("start", v)} />
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn label="Back" kind="quiet" onClick={() => setStep(5)} />
-            <Btn label="Next: set PIN" onClick={() => setStep(7)} disabled={!draft.season.name.trim()} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---------------- Home tab ---------------- */
-function HomeTab({ state, fin, openSale, openExpense }) {
-  return (
-    <div>
-      <Card style={{ background: NAVY, border: "none", color: "#fff" }}>
-        <div style={{ fontSize: 13, fontWeight: 800, opacity: 0.85, letterSpacing: 1 }}>
-          {state.season.name.toUpperCase()} · STARTED {fmtDate(state.season.start).toUpperCase()}
-        </div>
-        <div style={{ fontSize: 14, opacity: 0.85, marginTop: 14 }}>Money in the pot (net)</div>
-        <div style={{ fontSize: 34, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>
-          {fmt(fin.netPot)}
-        </div>
-      </Card>
-
-      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-        <Btn label={<><Plus size={20} /> Log sale</>} onClick={openSale} />
-        <Btn label={<><Minus size={20} /> Log expense</>} kind="ghost" onClick={openExpense} />
-      </div>
-    </div>
-  );
-}
-
-/* ---------------- History tab (totals + day-grouped log) ---------------- */
-function HistoryTab({ state, fin, openSale, openExpense, removeSale, removeExpense, toast }) {
-  const [del, setDel] = useState(null);
-
-  const fmtTime = (iso) => {
-    if (!iso) return "";
-    return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const grouped = useMemo(() => {
-    const s = state.sales.map((x) => ({ ...x, kind: "sale" }));
-    const e = state.expenses.map((x) => ({ ...x, kind: "expense" }));
-    const byDate = {};
-    [...s, ...e].forEach((item) => {
-      (byDate[item.date] = byDate[item.date] || []).push(item);
-    });
-    const dates = Object.keys(byDate).sort((a, b) => (a < b ? 1 : -1));
-    dates.forEach((d) => {
-      byDate[d].sort((a, b) => {
-        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tb - ta;
-      });
-    });
-    return { dates, byDate };
-  }, [state.sales, state.expenses]);
-
-  return (
-    <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <Btn label={<><Plus size={20} /> Log sale</>} onClick={openSale} />
-        <Btn label={<><Minus size={20} /> Log expense</>} kind="ghost" onClick={openExpense} />
-      </div>
-
-      <Card>
-        <Row left="Total fish sales" right={fmt(fin.grossSales)} />
-        <Row left="Fixed expenses" right={"− " + fmt(fin.fixedTotal)} />
-        <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
-        <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-        <Row left="Net pot" right={fmt(fin.netPot)} strong />
-        {fin.positionsTotal > 0 && fin.beforeSplit && (
-          <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
-        )}
-        <Row left="Pot to split" right={fmt(fin.potForSplit)} strong color={NAVY} />
-      </Card>
-
-      {fin.positionsTotal > 0 && fin.beforeSplit && (
-        <Card style={{ background: "#FFF8E6", border: "1px solid #F0D98A" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <Info size={20} color={WARN} style={{ flexShrink: 0, marginTop: 2 }} />
-            <div style={{ fontSize: 13.5, color: "#6B4E00" }}>
-              <b>Confirm with owner:</b> position pay is being taken off the whole pot before the split,
-              so the owner's half also helps fund it. If positions should come only from the workers'
-              half instead, this needs to change.
-            </div>
-          </div>
-        </Card>
-      )}
-
-      <Card>
-        <div style={{ fontSize: 13, fontWeight: 800, color: NAVY, letterSpacing: 0.5, marginBottom: 4 }}>
-          THE SPLIT
-        </div>
-        <Row left={"Owner's half (" + fin.ownerPct + "%)"} right={fmt(fin.ownerHalf)} />
-        <Row
-          left={"Workers' half (" + (100 - fin.ownerPct) + "%)"}
-          right={fmt(fin.workersHalf)}
-          strong
-          color={GOOD}
-        />
-        <div style={{ fontSize: 13, color: "#8A94A3", marginTop: 4 }}>
-          Workers' half ÷ {fin.totalUnits} units = {fmt(fin.vpu)} per unit
-        </div>
-      </Card>
-
-      {fin.netPot < 0 && (
-        <Card style={{ borderColor: BAD }}>
-          <div style={{ color: BAD, fontWeight: 700, fontSize: 15 }}>
-            Expenses are bigger than sales right now. Shares are worth GH₵ 0 until the pot recovers.
-          </div>
-        </Card>
-      )}
-
-      <div style={{ fontSize: 15, fontWeight: 800, color: NAVY, margin: "16px 0 2px" }}>History</div>
-      <div style={{ fontSize: 13, color: "#8A94A3", marginBottom: 8 }}>Tap an entry to remove it.</div>
-
-      {grouped.dates.length === 0 && (
-        <Card>
-          <div style={{ color: "#5A6675", fontSize: 15 }}>
-            Nothing logged yet. Tap "Log sale" after you sell fish.
-          </div>
-        </Card>
-      )}
-
-      {grouped.dates.map((d) => (
-        <div key={d} style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#5A6675", letterSpacing: 0.5, marginBottom: 6 }}>
-            {fmtDate(d)}
-          </div>
-          <Card pad={0} style={{ overflow: "hidden" }}>
-            {grouped.byDate[d].map((h, i) => {
-              const HIcon = h.kind === "sale" ? Fish : catIcon(h.category);
-              return (
-                <div
-                  key={h.id}
-                  onClick={() => setDel(h)}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "13px 16px",
-                    cursor: "pointer",
-                    borderBottom: i < grouped.byDate[d].length - 1 ? "1px solid " + LINE : "none",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 12,
-                        background: h.kind === "sale" ? "#E6F4EA" : MIST,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <HIcon size={20} color={h.kind === "sale" ? GOOD : NAVY} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>
-                        {h.kind === "sale" ? "Fish sale" : h.category || "Expense"}
-                      </div>
-                      <div style={{ fontSize: 13, color: "#5A6675" }}>
-                        {fmtTime(h.createdAt)}
-                        {h.note ? " · " + h.note : ""}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontWeight: 900,
-                      fontSize: 17,
-                      color: h.kind === "sale" ? GOOD : BAD,
-                      fontVariantNumeric: "tabular-nums",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h.kind === "sale" ? "+" : "−"} {fmt(h.amount)}
-                  </div>
-                </div>
-              );
-            })}
-          </Card>
-        </div>
-      ))}
-
-      {del && (
-        <ConfirmRemove
-          title={(del.kind === "sale" ? "Fish sale" : del.category || "Expense") + " · " + fmt(del.amount)}
-          lines={[fmtDate(del.date) + (del.note ? " · " + del.note : "")]}
-          onClose={() => setDel(null)}
-          onConfirm={() => {
-            if (del.kind === "sale") removeSale(del.id);
-            else removeExpense(del.id);
-            setDel(null);
-            toast("Entry removed");
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-/* ---------------- Workers tab ---------------- */
-function WorkersTab({
-  state,
-  fin,
-  addLoan,
-  addPayment,
-  addAdjustment,
-  removeLoan,
-  removePayment,
-  removeAdjustment,
-  toast,
-}) {
-  const [openId, setOpenId] = useState(null);
-  const [sub, setSub] = useState(null);
-  const [payDesc, setPayDesc] = useState("");
-  const [goodsOther, setGoodsOther] = useState("");
-  const [adjKind, setAdjKind] = useState("deduction");
-  const [adjReason, setAdjReason] = useState("");
-  const [adjOther, setAdjOther] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [del, setDel] = useState(null);
-
-  const w = state.workers.find((x) => x.id === openId) || null;
-  const n = w ? workerNumbers(state, w, fin) : null;
-  const posName = w && w.positionId
-    ? (state.positions.find((p) => p.id === w.positionId) || {}).name
-    : null;
-
-  const histRows = w
-    ? [
-        ...w.loans.map((l) => ({ ...l, k: "loan" })),
-        ...w.payments.map((p) => ({ ...p, k: "pay" })),
-        ...w.adjustments.map((a) => ({ ...a, k: "adj" })),
-      ].sort((a, b) => (a.date < b.date ? 1 : -1))
-    : [];
-
-  const histLabel = (h) => {
-    if (h.k === "loan") return "Loan";
-    if (h.k === "pay") return h.desc || "Payment";
-    return (h.kind === "bonus" ? "Bonus" : "Deduction") + (h.reason ? " · " + h.reason : "");
-  };
-  const histAmount = (h) =>
-    h.k === "adj" && h.kind === "bonus" ? "+ " + fmt(h.amount) : "− " + fmt(h.amount);
-
-  return (
-    <div>
-      {state.workers.map((wk) => {
-        const k = workerNumbers(state, wk, fin);
-        const pn = wk.positionId
-          ? (state.positions.find((p) => p.id === wk.positionId) || {}).name
-          : null;
-        const tone = k.payout < 0 ? "bad" : k.loansTotal + k.carried > k.grossShare * 0.7 ? "warn" : "good";
-        return (
-          <Card key={wk.id} pad={14} style={{ cursor: "pointer" }}>
-            <div onClick={() => { setOpenId(wk.id); setSub(null); setCopied(false); }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontWeight: 900, fontSize: 17, display: "flex", alignItems: "center", gap: 7 }}>
-                  {wk.name}
-                  {pn && <Star size={15} color={WARN} fill={WARN} />}
-                </div>
-                <Pill text={pn ? pn : wk.units + " units"} tone={pn ? "warn" : "navy"} />
-              </div>
-              <Row left="Share so far" right={fmt(k.grossShare)} />
-              <Row left="Will take home" right={fmt(k.payout)} strong color={k.payout < 0 ? BAD : GOOD} />
-              <Row left="Can still borrow" right={fmt(k.borrowLimit)} />
-              <div style={{ marginTop: 6 }}>
-                <Pill
-                  text={k.payout < 0 ? "In debt — carries over" : tone === "warn" ? "Borrowing high" : "Healthy"}
-                  tone={tone}
-                />
-              </div>
-            </div>
-          </Card>
-        );
-      })}
-
-      {w && sub === null && (
-        <Modal title={w.name + (posName ? " · " + posName : "")} onClose={() => setOpenId(null)}>
-          <Card pad={14} style={{ background: MIST, border: "none" }}>
-            <Row left={"Share from units (" + w.units + " × " + fmt(fin.vpu) + ")"} right={fmt(n.unitShare)} />
-            {n.posPay > 0 && <Row left={"Position pay (" + posName + ")"} right={"+ " + fmt(n.posPay)} />}
-            <Row left="Bonuses" right={"+ " + fmt(n.bonusTotal)} />
-            <Row left="Deductions" right={"− " + fmt(n.dedTotal)} />
-            <Row left="Loans this season" right={"− " + fmt(n.loansTotal)} />
-            <Row left="Payments received" right={"− " + fmt(n.paymentsTotal)} />
-            <Row left="Debt from last season" right={"− " + fmt(n.carried)} />
-            <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-            <Row left="Payout so far" right={fmt(n.payout)} strong color={n.payout < 0 ? BAD : GOOD} />
-            <Row left="Can still borrow" right={fmt(n.borrowLimit)} />
-          </Card>
-          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-            <Btn label="Give loan" kind="ghost" onClick={() => setSub("loan")} />
-            <Btn label="Record payment" kind="ghost" onClick={() => setSub("pay-type")} />
-          </div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-            <Btn
-              label={<><Plus size={18} /> Bonus</>}
-              kind="ghost"
-              onClick={() => { setAdjKind("bonus"); setAdjReason(""); setAdjOther(""); setSub("adj-reason"); }}
-            />
-            <Btn
-              label={<><Minus size={18} /> Deduct</>}
-              kind="ghost"
-              onClick={() => { setAdjKind("deduction"); setAdjReason(""); setAdjOther(""); setSub("adj-reason"); }}
-            />
-          </div>
-          <Btn label={<><MessageCircle size={20} /> Send statement</>} onClick={() => setSub("statement")} />
-          {histRows.length > 0 && (
-            <div style={{ marginTop: 18 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>History</div>
-              <div style={{ fontSize: 13, color: "#8A94A3", marginBottom: 4 }}>Tap an entry to remove it.</div>
-              {histRows.map((h) => (
-                <div
-                  key={h.id}
-                  onClick={() => setDel(h)}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    padding: "8px 0",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span style={{ fontSize: 15.5, color: "#4A5568" }}>
-                    {histLabel(h)} · {fmtDate(h.date)}
-                  </span>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      fontVariantNumeric: "tabular-nums",
-                      color: h.k === "adj" && h.kind === "bonus" ? GOOD : INK,
-                    }}
-                  >
-                    {histAmount(h)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Modal>
-      )}
-
-      {w && sub === "loan" && (
-        <KeypadSheet
-          title={"Loan for " + w.name}
-          HeaderIcon={Banknote}
-          subtitle={"Can borrow up to " + fmt(n.borrowLimit)}
-          quick={[50, 100, 200]}
-          maxAmount={n.borrowLimit}
-          maxMsg="More than the borrowing limit."
-          confirmLabel="Save loan"
-          onClose={() => setSub(null)}
-          onSave={({ amount, date }) => {
-            addLoan(w.id, { id: uid(), date, amount, note: "" });
-            setSub(null);
-            toast("Loan saved · " + fmt(amount));
-          }}
-        />
-      )}
-
-      {w && sub === "pay-type" && (
-        <Modal title={"Payment to " + w.name} onClose={() => setSub(null)}>
-          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>What did {w.name} receive?</div>
-          <Btn label={<><Banknote size={20} /> Cash</>} onClick={() => { setPayDesc("Cash"); setSub("pay-amt"); }} />
-          <div style={{ height: 10 }} />
-          <Btn label={<><Package size={20} /> Goods</>} kind="ghost" onClick={() => { setGoodsOther(""); setSub("pay-goods"); }} />
-        </Modal>
-      )}
-
-      {w && sub === "pay-goods" && (
-        <Modal title="What goods?" onClose={() => setSub("pay-type")}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            {GOODS_PRESETS.map((g) => (
-              <button
-                key={g}
-                onClick={() => { setPayDesc(g); setSub("pay-amt"); }}
-                style={{
-                  padding: "16px 8px",
-                  borderRadius: 14,
-                  border: "2px solid " + LINE,
-                  background: "#fff",
-                  fontWeight: 800,
-                  fontSize: 15.5,
-                  color: INK,
-                  cursor: "pointer",
-                }}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-          <Field label="Or type something else" value={goodsOther} onChange={setGoodsOther} placeholder="e.g. Outboard oil" />
-          <Btn label="Next" disabled={!goodsOther.trim()} onClick={() => { setPayDesc(goodsOther.trim()); setSub("pay-amt"); }} />
-        </Modal>
-      )}
-
-      {w && sub === "pay-amt" && (
-        <KeypadSheet
-          title={"Payment to " + w.name}
-          HeaderIcon={payDesc === "Cash" ? Banknote : Package}
-          subtitle={payDesc === "Cash" ? "Cash payment" : payDesc + " — agreed value"}
-          quick={[20, 50, 100]}
-          confirmLabel="Save payment"
-          onClose={() => setSub("pay-type")}
-          onSave={({ amount, date }) => {
-            addPayment(w.id, {
-              id: uid(),
-              date,
-              type: payDesc === "Cash" ? "cash" : "goods",
-              amount,
-              desc: payDesc,
-            });
-            setSub(null);
-            toast("Payment saved · " + fmt(amount));
-          }}
-        />
-      )}
-
-      {w && sub === "adj-reason" && (
-        <Modal title={adjKind === "bonus" ? "Bonus for " + w.name : "Deduction for " + w.name} onClose={() => setSub(null)}>
-          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>
-            {adjKind === "bonus" ? "Why the bonus?" : "Why the deduction?"}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            {(adjKind === "bonus" ? BONUS_REASONS : DEDUCT_REASONS).map((r) => (
-              <button
-                key={r}
-                onClick={() => { setAdjReason(r); setSub("adj-amt"); }}
-                style={{
-                  padding: "16px 8px",
-                  borderRadius: 14,
-                  border: "2px solid " + LINE,
-                  background: "#fff",
-                  fontWeight: 800,
-                  fontSize: 15.5,
-                  color: INK,
-                  cursor: "pointer",
-                }}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-          <Field label="Or type another reason" value={adjOther} onChange={setAdjOther} placeholder="e.g. Helped repair engine" />
-          <Btn label="Next" disabled={!adjOther.trim()} onClick={() => { setAdjReason(adjOther.trim()); setSub("adj-amt"); }} />
-        </Modal>
-      )}
-
-      {w && sub === "adj-amt" && (
-        <KeypadSheet
-          title={(adjKind === "bonus" ? "Bonus: " : "Deduction: ") + adjReason}
-          HeaderIcon={adjKind === "bonus" ? Plus : Minus}
-          subtitle={adjKind === "bonus" ? "Extra money for " + w.name : "Money removed from " + w.name + "'s payout"}
-          quick={[20, 50, 100]}
-          confirmLabel={adjKind === "bonus" ? "Save bonus" : "Save deduction"}
-          onClose={() => setSub("adj-reason")}
-          onSave={({ amount, date }) => {
-            addAdjustment(w.id, { id: uid(), date, kind: adjKind, amount, reason: adjReason });
-            setSub(null);
-            toast((adjKind === "bonus" ? "Bonus saved · " : "Deduction saved · ") + fmt(amount));
-          }}
-        />
-      )}
-
-      {w && sub === "statement" && (
-        <Modal title={"Statement for " + w.name} onClose={() => setSub(null)}>
-          <pre
-            style={{
-              background: MIST,
-              borderRadius: 12,
-              padding: 14,
-              fontSize: 13.5,
-              whiteSpace: "pre-wrap",
-              fontFamily: "ui-monospace, Menlo, monospace",
-              color: INK,
-            }}
-          >
-            {buildStatement(state, fin, w)}
-          </pre>
-          <a
-            href={waLink(w.phone, buildStatement(state, fin, w))}
-            target="_blank"
-            rel="noreferrer"
-            style={{ textDecoration: "none", display: "block", marginBottom: 10 }}
-          >
-            <Btn label={<><MessageCircle size={20} /> Share on WhatsApp</>} onClick={() => {}} />
-          </a>
-          <Btn
-            label={copied ? <><Check size={20} /> Copied</> : <><Copy size={20} /> Copy text</>}
-            kind="ghost"
-            onClick={() => copyText(buildStatement(state, fin, w)).then(() => setCopied(true))}
-          />
-        </Modal>
-      )}
-
-      {w && del && (
-        <ConfirmRemove
-          title={histLabel(del) + " · " + fmt(del.amount)}
-          lines={[fmtDate(del.date)]}
-          onClose={() => setDel(null)}
-          onConfirm={() => {
-            if (del.k === "loan") removeLoan(w.id, del.id);
-            else if (del.k === "pay") removePayment(w.id, del.id);
-            else removeAdjustment(w.id, del.id);
-            setDel(null);
-            toast("Entry removed");
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-/* ---------------- Weather tab ---------------- */
-function WeatherTab() {
-  const [wx, setWx] = useState({ status: "loading" });
-  useEffect(() => {
-    let alive = true;
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 6000);
-    (async () => {
-      try {
-        const [mr, fr] = await Promise.all([
-          fetch(
-            "https://marine-api.open-meteo.com/v1/marine?latitude=5.9042&longitude=0.5847&current=wave_height",
-            { signal: ctrl.signal }
-          ),
-          fetch(
-            "https://api.open-meteo.com/v1/forecast?latitude=5.9042&longitude=0.5847&current=wind_speed_10m,precipitation&wind_speed_unit=kmh",
-            { signal: ctrl.signal }
-          ),
-        ]);
-        const mj = await mr.json();
-        const fj = await fr.json();
-        if (!alive) return;
-        setWx({
-          status: "live",
-          wave: mj.current?.wave_height ?? 0,
-          wind: fj.current?.wind_speed_10m ?? 0,
-          rain: fj.current?.precipitation ?? 0,
-        });
-      } catch {
-        if (!alive) return;
-        setWx({ status: "demo", wave: 0.9, wind: 14, rain: 0 });
-      } finally {
-        clearTimeout(t);
-      }
-    })();
-    return () => {
-      alive = false;
-      ctrl.abort();
-      clearTimeout(t);
-    };
-  }, []);
-
-  if (wx.status === "loading")
-    return (
-      <Card>
-        <div style={{ color: "#5A6675", fontSize: 15 }}>Checking the sea at Adina…</div>
-      </Card>
-    );
-
-  const verdict =
-    wx.wave >= 2 || wx.wind >= 30
-      ? { label: "STAY ASHORE", tone: "bad", msg: "The sea is dangerous today. Do not go out." }
-      : wx.wave >= 1.2 || wx.wind >= 20 || wx.rain >= 2
-      ? { label: "CAUTION", tone: "warn", msg: "Conditions are rough. Go carefully or wait." }
-      : { label: "SAFE", tone: "good", msg: "Good conditions for fishing today." };
-  const vcol = { good: GOOD, warn: WARN, bad: BAD }[verdict.tone];
-
-  return (
-    <div>
-      <Card style={{ borderLeft: "6px solid " + vcol }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#5A6675", letterSpacing: 1 }}>
-          ADINA, VOLTA REGION — NOW
-        </div>
-        <div style={{ fontSize: 32, fontWeight: 900, color: vcol, margin: "6px 0" }}>{verdict.label}</div>
-        <div style={{ fontSize: 16, color: INK }}>{verdict.msg}</div>
-      </Card>
-      <Card>
-        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Wind size={18} color={NAVY} /> Wind</span>} right={wx.wind + " km/h"} />
-        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Waves size={18} color={NAVY} /> Waves</span>} right={wx.wave + " m"} />
-        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><CloudRain size={18} color={NAVY} /> Rain</span>} right={wx.rain + " mm"} />
-      </Card>
-      {wx.status === "demo" && (
-        <Card style={{ background: MIST, border: "none" }}>
-          <div style={{ fontSize: 14, color: "#5A6675" }}>
-            <b>Offline.</b> Showing saved demo conditions — the app keeps working without network. Live
-            data returns when connection is back.
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-/* ---------------- More tab ---------------- */
-function MoreTab({ state, fin, onCloseSeason, onReset }) {
-  const [confirm, setConfirm] = useState(false);
-  return (
-    <div>
-      <Card>
-        <div style={{ fontWeight: 900, fontSize: 17, marginBottom: 4 }}>{state.company.name}</div>
-        <div style={{ fontSize: 14.5, color: "#5A6675" }}>
-          Owner: {state.company.owner || "—"} · Owner's split: {state.company.ownerSplit}%
-        </div>
-        <div style={{ fontSize: 14.5, color: "#5A6675" }}>
-          Season: {state.season.name} · {state.workers.length} workers · {fin.totalUnits} units
-        </div>
-        <div style={{ fontSize: 14.5, color: "#5A6675" }}>
-          Expense types: {state.expenseCats.join(", ")}
-        </div>
-      </Card>
-
-      {state.positions.length > 0 && (
-        <Card>
-          <div style={{ fontWeight: 800, fontSize: 15, color: NAVY, marginBottom: 6 }}>Positions</div>
-          {state.positions.map((p) => {
-            const holders = state.workers.filter((w) => w.positionId === p.id).map((w) => w.name);
-            return (
-              <Row
-                key={p.id}
-                left={p.name + (holders.length ? " · " + holders.join(", ") : " · unassigned")}
-                right={fmt(p.pay) + " / season"}
-              />
-            );
-          })}
-        </Card>
-      )}
-
-      {state.pastSeasons.length > 0 && (
-        <Card>
-          <div style={{ fontWeight: 800, fontSize: 15, color: NAVY, marginBottom: 6 }}>Past seasons</div>
-          {state.pastSeasons.map((p, i) => (
-            <Row key={i} left={p.name} right={"Net pot " + fmt(p.netPot)} />
-          ))}
-        </Card>
-      )}
-      <Btn label="Close this season" kind="danger" onClick={() => setConfirm(true)} />
-      <div style={{ height: 10 }} />
-      <Btn label="Reset demo (erase all data)" kind="quiet" onClick={onReset} />
-
-      {confirm && (
-        <Modal title="Close the season?" onClose={() => setConfirm(false)}>
-          <div style={{ fontSize: 15, color: "#3D4754", marginBottom: 12 }}>
-            Final payouts will be locked. Any worker debt carries to the next season automatically.
-          </div>
-          <Card pad={12} style={{ background: MIST, border: "none" }}>
-            {state.workers.map((w) => {
-              const k = workerNumbers(state, w, fin);
-              return (
-                <Row
-                  key={w.id}
-                  left={w.name}
-                  right={k.payout < 0 ? "Carries debt " + fmt(-k.payout) : "Take home " + fmt(k.payout)}
-                  color={k.payout < 0 ? BAD : INK}
-                />
-              );
-            })}
-            <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-            <Row left="Owner's half" right={fmt(fin.ownerHalf)} strong />
-          </Card>
-          <Btn
-            label="Yes, close season"
-            onClick={() => {
-              setConfirm(false);
-              onCloseSeason();
-            }}
-          />
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-/* ---------------- App shell ---------------- */
-function VaultStack() {
-  const [state, setState] = useState(null);
-  const [locked, setLocked] = useState(false);
-  const [pinErr, setPinErr] = useState("");
-  const [tab, setTab] = useState("home");
-  const [flow, setFlow] = useState(null);
-  const [expCat, setExpCat] = useState(null);
-  const [expSession, setExpSession] = useState([]);
-  const [newCatName, setNewCatName] = useState("");
-  const [toastMsg, setToastMsg] = useState(null);
-  const [saveStamp, setSaveStamp] = useState(null);
-  const saveTimer = useRef(null);
-  const toastTimer = useRef(null);
-  const firstRender = useRef(true);
-
-  useEffect(() => {
-    (async () => {
-      const saved = normalizeState(await loadSaved());
-      if (saved && saved.setupDone) {
-        setState(saved);
-        setLocked(Boolean(saved.pin));
-      } else {
-        setState(saved || blankState());
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (state === null) return;
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveStamp("saving");
-    saveTimer.current = setTimeout(async () => {
-      const ok = await persist(state);
-      setSaveStamp(ok ? new Date() : "error");
-    }, 450);
-    return () => saveTimer.current && clearTimeout(saveTimer.current);
-  }, [state]);
-
-  const toast = (msg) => {
-    setToastMsg(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(null), 2000);
-  };
-
-  const fin = useMemo(() => (state ? computeFinancials(state) : null), [state]);
-
-  if (state === null)
-    return (
-      <div style={{ fontFamily: baseFont, padding: 40, textAlign: "center", color: "#5A6675" }}>
-        Opening VaultStack…
-      </div>
-    );
-
-  const addSale = (s) => setState((st) => ({ ...st, sales: [...st.sales, s] }));
-  const addExpense = (e) => setState((st) => ({ ...st, expenses: [...st.expenses, e] }));
-  const removeSale = (id) => setState((st) => ({ ...st, sales: st.sales.filter((x) => x.id !== id) }));
-  const removeExpense = (id) => setState((st) => ({ ...st, expenses: st.expenses.filter((x) => x.id !== id) }));
-  const addLoan = (wid, loan) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: [...w.loans, loan] } : w)),
-    }));
-  const addPayment = (wid, pay) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: [...w.payments, pay] } : w)),
-    }));
-  const addAdjustment = (wid, adj) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: [...w.adjustments, adj] } : w)),
-    }));
-  const removeLoan = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: w.loans.filter((x) => x.id !== id) } : w)),
-    }));
-  const removePayment = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: w.payments.filter((x) => x.id !== id) } : w)),
-    }));
-  const removeAdjustment = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: w.adjustments.filter((x) => x.id !== id) } : w)),
-    }));
-  const resolveCategory = (raw) => {
-    const name = raw.trim();
-    const existing = state.expenseCats.find((c) => c.toLowerCase() === name.toLowerCase());
-    if (existing) return existing;
-    setState((st) => ({ ...st, expenseCats: [...st.expenseCats, name] }));
-    return name;
-  };
-  const closeSeason = () =>
-    setState((st) => {
-      const f = computeFinancials(st);
-      const settlements = st.workers.map((w) => {
-        const k = workerNumbers(st, w, f);
-        return { name: w.name, payout: k.payout };
-      });
-      const nextYear = new Date().getFullYear();
-      return {
-        ...st,
-        pastSeasons: [
-          ...st.pastSeasons,
-          { name: st.season.name, netPot: f.netPot, ownerHalf: f.ownerHalf, settlements },
-        ],
-        season: { ...st.season, name: "New Season " + nextYear, start: todayISO() },
-        sales: [],
-        expenses: [],
-        workers: st.workers.map((w) => {
-          const k = workerNumbers(st, w, f);
-          return { ...w, carriedDebt: k.payout < 0 ? -k.payout : 0, loans: [], payments: [], adjustments: [] };
-        }),
-      };
-    });
-  const resetAll = async () => {
-    await wipeSaved();
-    firstRender.current = true;
-    setState(blankState());
-    setLocked(false);
-    setTab("home");
-    setFlow(null);
-  };
-
-  const shell = (children) => (
-    <div
-      style={{
-        fontFamily: baseFont,
-        background: MIST,
-        height: "100%",
-        maxWidth: 430,
-        margin: "0 auto",
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {children}
-    </div>
-  );
-
-  if (!state.setupDone)
-    return shell(
-      <div style={{ background: "#fff", flex: 1, overflowY: "auto" }}>
-        <Onboarding
-          onFinish={(d) => { setState(d); setTab("home"); }}
-          onDemo={() => { setState(demoState()); setLocked(true); }}
-        />
-      </div>
-    );
-
-  if (locked)
-    return shell(
-      <div style={{ background: "#fff", flex: 1, overflowY: "auto" }}>
-        <PinPad
-          title="Enter your PIN"
-          subtitle={state.company.name}
-          errorMsg={pinErr}
-          onComplete={(d) => {
-            if (d === state.pin) { setLocked(false); setPinErr(""); }
-            else setPinErr("Wrong PIN. Try again.");
-          }}
-        />
-      </div>
-    );
-
-  const tabs = [
-    { id: "home", Icon: Home, label: "Home" },
-    { id: "history", Icon: Banknote, label: "History" },
-    { id: "workers", Icon: Users, label: "Workers" },
-    { id: "weather", Icon: Waves, label: "Weather" },
-    { id: "more", Icon: Settings, label: "More" },
-  ];
-
-  const openSale = () => setFlow("sale");
-  const openExpense = () => { setExpSession([]); setFlow("expense-cat"); };
-
-  const availableCats = state.expenseCats.filter(
-    (c) => !expSession.some((s) => s.cat.toLowerCase() === c.toLowerCase())
-  );
-  const sessionTotal = expSession.reduce((s, x) => s + x.amount, 0);
-
-  return shell(
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-      <div
-        style={{
-          background: NAVY,
-          color: "#fff",
-          padding: "14px 18px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
-          <Anchor size={20} strokeWidth={2.4} /> VaultStack
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 12, opacity: 0.9 }}>
-            {saveStamp === "saving" ? "Saving…" : saveStamp === "error" ? "Not saved" : "Saved on this phone"}
-          </span>
-          <button
-            onClick={() => setLocked(true)}
-            title="Lock app"
-            style={{
-              background: "rgba(255,255,255,0.15)",
-              border: "none",
-              color: "#fff",
-              borderRadius: 8,
-              padding: "6px 10px",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Lock size={14} /> Lock
-          </button>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, padding: 14, overflowY: "auto", minHeight: 0 }}>
-        {tab === "home" && <HomeTab state={state} fin={fin} openSale={openSale} openExpense={openExpense} />}
-        {tab === "history" && (
-          <HistoryTab
-            state={state}
-            fin={fin}
-            openSale={openSale}
-            openExpense={openExpense}
-            removeSale={removeSale}
-            removeExpense={removeExpense}
-            toast={toast}
-          />
-        )}
-        {tab === "workers" && (
-          <WorkersTab
-            state={state}
-            fin={fin}
-            addLoan={addLoan}
-            addPayment={addPayment}
-            addAdjustment={addAdjustment}
-            removeLoan={removeLoan}
-            removePayment={removePayment}
-            removeAdjustment={removeAdjustment}
-            toast={toast}
-          />
-        )}
-        {tab === "weather" && <WeatherTab />}
-        {tab === "more" && <MoreTab state={state} fin={fin} onCloseSeason={closeSeason} onReset={resetAll} />}
-      </div>
-
-      {flow === "sale" && (
-        <KeypadSheet
-          title="Log a fish sale"
-          HeaderIcon={Fish}
-          subtitle="How much money did you receive?"
-          confirmLabel="Save sale"
-          onClose={() => setFlow(null)}
-          onSave={({ amount, date }) => {
-            addSale({ id: uid(), date, amount, note: "", createdAt: new Date().toISOString() });
-            setFlow(null);
-            toast("Sale saved · " + fmt(amount));
-          }}
-        />
-      )}
-
-      {flow === "expense-cat" && (
-        <Modal title="What did you pay for?" onClose={() => setFlow(null)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {availableCats.map((name) => {
-              const Icon = catIcon(name);
-              return (
-                <button
-                  key={name}
-                  onClick={() => { setExpCat(name); setFlow("expense-amt"); }}
-                  style={{
-                    padding: "18px 8px",
-                    borderRadius: 16,
-                    border: "2px solid " + LINE,
-                    background: "#fff",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <Icon size={28} color={NAVY} strokeWidth={2.2} />
-                  <span style={{ fontWeight: 800, fontSize: 15, color: INK }}>{name}</span>
-                </button>
-              );
-            })}
-            <button
-              onClick={() => { setNewCatName(""); setFlow("expense-name"); }}
-              style={{
-                padding: "18px 8px",
-                borderRadius: 16,
-                border: "2px dashed " + NAVY,
-                background: "#fff",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <Plus size={28} color={NAVY} strokeWidth={2.2} />
-              <span style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>Other</span>
-            </button>
-          </div>
-
-          {expSession.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: NAVY, marginBottom: 4 }}>Logged just now</div>
-              {expSession.map((s, i) => {
-                const SIcon = catIcon(s.cat);
-                return (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 15.5, color: "#4A5568" }}>
-                      <Check size={17} color={GOOD} strokeWidth={3} /> <SIcon size={17} color={NAVY} /> {s.cat}
-                    </span>
-                    <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>− {fmt(s.amount)}</span>
-                  </div>
-                );
-              })}
-              <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-              <Row left="Total this sitting" right={"− " + fmt(sessionTotal)} strong />
-              <div style={{ height: 10 }} />
-              <Btn label={<><Check size={20} /> Done</>} onClick={() => setFlow(null)} />
-            </div>
-          )}
-        </Modal>
-      )}
-
-      {flow === "expense-name" && (
-        <Modal title="Name this expense" onClose={() => setFlow("expense-cat")}>
-          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>
-            Give it a name once. It will be saved as a button for next time.
-          </div>
-          <Field label="What is it called?" value={newCatName} onChange={setNewCatName} placeholder="e.g. Net mending" />
-          <Btn
-            label="Next"
-            disabled={!newCatName.trim()}
-            onClick={() => {
-              const finalName = resolveCategory(newCatName);
-              setExpCat(finalName);
-              setFlow("expense-amt");
-            }}
-          />
-        </Modal>
-      )}
-
-      {flow === "expense-amt" && (
-        <KeypadSheet
-          title={"Expense: " + expCat}
-          HeaderIcon={catIcon(expCat)}
-          subtitle="How much did you pay?"
-          confirmLabel="Save expense"
-          onClose={() => setFlow("expense-cat")}
-          onSave={({ amount, date }) => {
-            addExpense({ id: uid(), date, amount, category: expCat, createdAt: new Date().toISOString() });
-            setExpSession((prev) => [...prev, { cat: expCat, amount }]);
-            toast(expCat + " saved · " + fmt(amount));
-            setFlow("expense-cat");
-          }}
-        />
-      )}
-
-      {toastMsg && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 84,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: INK,
-            color: "#fff",
-            padding: "12px 18px",
-            borderRadius: 999,
-            fontSize: 14.5,
-            fontWeight: 800,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            zIndex: 60,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <Check size={18} color="#7BE495" /> {toastMsg}
-        </div>
-      )}
-
-      <div style={{ display: "flex", borderTop: "1px solid " + LINE, background: "#fff", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        {tabs.map(({ id, Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => { setTab(id); setFlow(null); }}
-            style={{
-              flex: 1,
-              padding: "10px 0 12px",
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              color: tab === id ? NAVY : "#8A94A3",
-              fontWeight: tab === id ? 900 : 600,
-              fontSize: 12.5,
-              fontFamily: baseFont,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 3,
-            }}
-          >
-            <Icon size={22} strokeWidth={tab === id ? 2.6 : 2} />
-            {label}
-            <div style={{ width: 22, height: 3, background: tab === id ? NAVY : "transparent", borderRadius: 99 }} />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<VaultStack />);
+ReactDOM.createRoot(document.getElementById('root')).render(<VaultStackV3 />);
 </script>
 </body>
 </html>
