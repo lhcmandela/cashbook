@@ -6,7 +6,7 @@
 <title>VaultStack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 :root{
@@ -30,7 +30,7 @@ html,body{height:100%;margin:0}
 body{
   background:#E7EDF2;
   color:var(--ink);
-  font-family:"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   overflow:hidden;
@@ -74,7 +74,7 @@ input{-webkit-appearance:none;appearance:none}
 input[type=date]{min-width:0}
 ::selection{background:#CFE6F3}
 /* tabular money columns and safe truncation */
-.num{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:-0.01em}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .vs-press:active{opacity:.72}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
@@ -149,7 +149,7 @@ const SEA = "#0E6E9E";
 const GOLD = "#A9791D";
 const LIME = "#7BE0F0";       /* the single accent — over deep blue, or as a fill */
 const baseFont =
-  '"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+  '"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 const STORE_KEY = "vaultstack:app:v2"; /* bumped: new shape */
 const SEA_POINT = "latitude=5.9042&longitude=0.5847";
 
@@ -383,7 +383,7 @@ const BONUS_REASONS = ["Good catch", "Extra work"];
    and position pay). Legacy originals below are bound over and
    never executed.
    ============================================================ */
-const MONO2 = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+const MONO2 = '"Inter", ui-monospace, Menlo, monospace';
 
 /* -------- password (PIN) storage: salted SHA-256, never plaintext -------- */
 async function vsHashPin(pin, salt) {
@@ -502,7 +502,8 @@ function Btn2({ label, onClick, kind = "primary", full = true, small = false, di
     justifyContent: "center",
     gap: 8,
     width: full ? "100%" : "auto",
-    padding: small ? "9px 14px" : "14px 16px",
+    padding: small ? "10px 14px" : "14px 16px",
+    minHeight: small ? 46 : 50,
     borderRadius: 12,
     border: "1px solid transparent",
     fontSize: small ? 14.5 : 16,
@@ -1914,7 +1915,7 @@ function VaultStackV3() {
    Screens — one design system: sea-blue headers, flat white cards,
    tabular money, no decoration that does not carry information.
    ============================================================ */
-const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+const MONO = '"Inter", ui-monospace, Menlo, monospace';
 
 function Avatar({ name, size = 44 }) {
   const parts = (name || "?").trim().split(/\s+/);
@@ -1995,19 +1996,11 @@ function seaVerdict(wx) {
 
 /* ---------------- Home (dashboard) ---------------- */
 function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp }) {
-  const wx = useSea();
-  const v = seaVerdict(wx);
   const owner = state.company.owner ? state.company.owner.trim() : "";
   const first = owner ? owner.split(" ")[0] : "";
-  const initials =
-    (owner || state.company.name || "VS")
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p[0] || "")
-      .join("")
-      .toUpperCase() || "VS";
+  const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
+  /* the last three entries only — the full books live in Sales and Expenses */
   const recent = useMemo(() => {
     const s = state.sales.map((x) => ({ ...x, kind: "sale" }));
     const e = state.expenses.map((x) => ({ ...x, kind: "expense" }));
@@ -2018,54 +2011,32 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
         if (ta !== tb) return tb - ta;
         return a.date < b.date ? 1 : -1;
       })
-      .slice(0, 4);
+      .slice(0, 3);
   }, [state.sales, state.expenses]);
 
-  const totalCosts = fin.fixedTotal + fin.varTotal;
   const toPayOut = state.workers.reduce((s, w) => s + Math.max(0, workerNumbers(state, w, fin).payout), 0);
-  const owing = state.workers.reduce((s, w) => s + Math.max(0, -workerNumbers(state, w, fin).payout), 0);
+
   const savedText =
     saveStamp === "saving" ? "Saving…" : saveStamp === "error" ? "Not saved on this phone" : "Saved on this phone";
 
-  const strip = [
-    { k: "Sales", v: fmt(fin.grossSales) },
-    { k: "Costs", v: fmt(totalCosts) },
-    { k: "Per unit", v: fmt(fin.vpu) },
-  ];
-
   return (
-    <div>
-      {/* ---- season header: the one thing a skipper checks first ---- */}
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+      {/* ---- the season's position: the one figure a skipper opens the app for ---- */}
       <div
         style={{
           background: NAVY,
-          padding: "16px 16px 18px",
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 22,
+          padding: "16px 16px 20px",
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 999,
-              background: "rgba(255,255,255,0.14)",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              fontSize: 14.5,
-              flexShrink: 0,
-            }}
-          >
-            {initials}
-          </div>
-          <div className="truncate" style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.72)" }}>Akwaaba</div>
-            <div className="truncate" style={{ fontSize: 15.5, fontWeight: 800, color: "#fff" }}>
-              {first || state.company.name || "Skipper"}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div className="truncate" style={{ minWidth: 0 }}>
+            <div className="truncate" style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>
+              {first ? "Akwaaba, " + first : "Akwaaba"}
+            </div>
+            <div className="truncate" style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginTop: 3 }}>
+              {today}
             </div>
           </div>
           {onLock ? (
@@ -2075,150 +2046,80 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
           ) : null}
         </div>
 
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.74)" }}>Money in the pot</div>
-          <div className="num" style={{ fontSize: 33, fontWeight: 800, color: "#fff", lineHeight: 1.1, marginTop: 2 }}>
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,0.68)" }}>Money in the pot</div>
+          <div className="num" style={{ fontSize: 34, fontWeight: 700, color: "#fff", lineHeight: 1.15, marginTop: 4 }}>
             {fmt(fin.netPot)}
           </div>
-          <div className="truncate" style={{ fontSize: 12.5, color: "rgba(255,255,255,0.70)", marginTop: 5 }}>
+          <div className="truncate" style={{ fontSize: 12.5, color: "rgba(255,255,255,0.60)", marginTop: 7 }}>
             {(state.season.name || "This season") + " · since " + fmtDate(state.season.start)}
           </div>
           {fin.netPot < 0 ? (
-            <div style={{ fontSize: 12.5, color: "#FFC9BB", marginTop: 6, fontWeight: 600 }}>
+            <div style={{ fontSize: 12.5, color: "#FFC9BB", marginTop: 7 }}>
               Costs are ahead of sales. Shares stay at GH₵ 0 until the pot recovers.
             </div>
           ) : null}
         </div>
-
-        <div style={{ display: "flex", gap: 10, marginTop: 15 }}>
-          <Btn label={<><Plus size={18} /> Log sale</>} kind="onGreen" onClick={openSale} />
-          <Btn label={<><Minus size={18} /> Log expense</>} kind="onGreenGhost" onClick={openExpense} />
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            marginTop: 15,
-            background: "rgba(255,255,255,0.10)",
-            borderRadius: 14,
-            padding: "11px 12px",
-          }}
-        >
-          {strip.map((s, i) => (
-            <div
-              key={s.k}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                paddingLeft: i === 0 ? 0 : 12,
-                borderLeft: i === 0 ? "none" : "1px solid rgba(255,255,255,0.18)",
-              }}
-            >
-              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, color: "rgba(255,255,255,0.66)", textTransform: "uppercase" }}>
-                {s.k}
-              </div>
-              <div className="num truncate" style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginTop: 2 }}>
-                {s.v}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
-      <div style={{ padding: "0 14px" }}>
-        <SectionHead text="This season" />
-        <Card pad={14}>
-          <Row left="Fish sales" right={fmt(fin.grossSales)} />
-          <Row left="Fixed costs" right={"− " + fmt(fin.fixedTotal)} />
-          <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
-          {fin.positionsTotal > 0 && fin.beforeSplit ? (
-            <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
-          ) : null}
-          <div style={{ borderTop: "1px solid " + LINE, margin: "6px 0 2px" }} />
-          <Row left="Money in the pot" right={fmt(fin.netPot)} strong />
-          <Row left="Pot to share by units" right={fmt(fin.potForSplit)} strong />
-          <Row left={"Each unit is worth (" + fin.totalUnits + " units)"} right={fmt(fin.vpu)} strong color={NAVY} />
-        </Card>
-
-        <SectionHead text="Crew" action="Manage" onAction={() => go("workers")} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "14px 14px 0" }}>
+        {/* ---- two figures, nothing else ---- */}
         <Card pad={0} style={{ overflow: "hidden" }}>
-          <ListRow
-            Icon={Users}
-            title={state.workers.length + (state.workers.length === 1 ? " worker" : " workers")}
-            sub={fin.totalUnits + " share units in the crew"}
-            onClick={() => go("workers")}
-          />
-          <ListRow
-            Icon={Banknote}
-            iconColor={GOOD}
-            iconBg="#E3F1E8"
-            title="To pay out"
-            sub="If the season closed today"
-            amount={fmt(toPayOut)}
-            amountTone={GOOD}
-            onClick={() => go("workers")}
-          />
-          <ListRow
-            Icon={Info}
-            iconColor={owing > 0 ? BAD : MUTED}
-            iconBg={owing > 0 ? "#F8E7E4" : "#ECF1F6"}
-            title="Owing to the boat"
-            sub={owing > 0 ? "Carries to next season" : "Nobody is in debt"}
-            amount={fmt(owing)}
-            amountTone={owing > 0 ? BAD : MUTED}
-            onClick={() => go("workers")}
-            last
-          />
-        </Card>
-
-        <SectionHead text="Sea at Adina" action="Full report" onAction={() => go("weather")} />
-        <Card pad={13} onClick={() => go("weather")} style={{ borderLeft: "4px solid " + v.col }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-              <Waves size={20} color={v.col} style={{ flexShrink: 0 }} />
-              <div className="truncate" style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontWeight: 800, fontSize: 14.5, color: v.col }}>{v.label}</span>
-                  {wx.status === "demo" ? <Pill text="Offline" tone="neutral" /> : null}
-                </div>
-                <div className="truncate" style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>
-                  {wx.status === "loading" ? "Checking conditions…" : "Wind " + wx.wind + " km/h · waves " + wx.wave + " m"}
-                </div>
+          <div style={{ display: "flex", alignItems: "stretch" }}>
+            <div style={{ flex: 1, minWidth: 0, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11.5, fontWeight: 500, color: MUTED }}>Each unit is worth</div>
+              <div className="num truncate" style={{ fontSize: 16.5, fontWeight: 600, color: INK, marginTop: 4 }}>
+                {fmt(fin.vpu)}
+              </div>
+            </div>
+            <div style={{ width: 1, background: LINE }} />
+            <div style={{ flex: 1, minWidth: 0, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11.5, fontWeight: 500, color: MUTED }}>Crew payout today</div>
+              <div className="num truncate" style={{ fontSize: 16.5, fontWeight: 600, color: INK, marginTop: 4 }}>
+                {fmt(toPayOut)}
               </div>
             </div>
           </div>
         </Card>
 
-        <SectionHead text="Recent activity" action="See all" onAction={() => go("sales")} />
-        {recent.length === 0 ? (
-          <Card pad={14}>
-            <div style={{ fontSize: 14, color: MUTED }}>
-              Nothing logged yet. Tap “Log sale” after you sell fish, or “Log expense” when you buy premix.
-            </div>
-          </Card>
-        ) : (
-          <Card pad={0} style={{ overflow: "hidden" }}>
-            {recent.map((r, i) => {
-              const Icon = r.kind === "sale" ? Fish : catIcon(r.category);
-              return (
-                <ListRow
-                  key={r.id}
-                  Icon={Icon}
-                  iconColor={r.kind === "sale" ? SEA : NAVY}
-                  iconBg={r.kind === "sale" ? "#E3F1E8" : "#ECF1F6"}
-                  title={r.kind === "sale" ? "Fish sale" : r.category || "Expense"}
-                  sub={fmtDate(r.date) + (r.note ? " · " + r.note : "")}
-                  amount={(r.kind === "sale" ? "+ " : "− ") + fmt(r.amount)}
-                  amountTone={r.kind === "sale" ? GOOD : INK}
-                  onClick={() => go(r.kind === "sale" ? "sales" : "expenses")}
-                  last={i === recent.length - 1}
-                />
-              );
-            })}
-          </Card>
-        )}
+        {/* ---- a little recent activity, only when there is some ---- */}
+        {recent.length > 0 ? (
+          <div>
+            <SectionHead text="Recent" action="See all" onAction={() => go("sales")} />
+            <Card pad={0} style={{ overflow: "hidden" }}>
+              {recent.map((r, i) => {
+                const Icon = r.kind === "sale" ? Fish : catIcon(r.category);
+                return (
+                  <ListRow
+                    key={r.id}
+                    Icon={Icon}
+                    iconColor={r.kind === "sale" ? SEA : NAVY}
+                    iconBg={r.kind === "sale" ? "#E3F1E8" : "#ECF1F6"}
+                    title={r.kind === "sale" ? "Fish sale" : r.category || "Expense"}
+                    sub={fmtDate(r.date) + (r.note ? " · " + r.note : "")}
+                    amount={(r.kind === "sale" ? "+ " : "− ") + fmt(r.amount)}
+                    amountTone={r.kind === "sale" ? GOOD : INK}
+                    onClick={() => go(r.kind === "sale" ? "sales" : "expenses")}
+                    last={i === recent.length - 1}
+                  />
+                );
+              })}
+            </Card>
+          </div>
+        ) : null}
 
-        <div style={{ textAlign: "center", fontSize: 11.5, color: MUTED, padding: "6px 0 4px" }}>{savedText}</div>
+        {/* ---- the two things you actually come here to do ---- */}
+        <div style={{ marginTop: "auto", paddingTop: 16 }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Btn label="Log sale" kind="primary" small onClick={openSale} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Btn label="Log expense" kind="ghost" small onClick={openExpense} />
+            </div>
+          </div>
+          <div style={{ textAlign: "center", fontSize: 11.5, color: MUTED, padding: "12px 0 16px" }}>{savedText}</div>
+        </div>
       </div>
     </div>
   );
