@@ -11,45 +11,73 @@
 *{box-sizing:border-box}
 :root{
   color-scheme: light;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  --ink:#0C1B2A;
-  --navy:#123B63;
-  --deep:#0E2E4E;
-  --deep2:#0A2238;
-  --mist:#EFF3F8;
-  --line:#D7DEE8;
-  --sea:#0E7C66;
-  --sea-soft:#E3F3EE;
-  --gold:#D9A441;
-  --gold-soft:#FBF3E2;
-  --good:#0F7B40;
-  --warn:#B26A00;
-  --bad:#C0392B;
+  /* VaultStack palette — deep marine green, one lime accent, warm neutrals */
+  --green:#0B3B2E;
+  --green-deep:#08281F;
+  --green-soft:#E7EFEA;
+  --lime:#C6F04E;
+  --ink:#0E1B15;
+  --muted:#5D6B65;
+  --mist:#F2F5F3;
+  --line:#DEE5E0;
+  --good:#177A4B;
+  --warn:#8F5B00;
+  --bad:#B3382A;
+  --sea:#0F7A5E;
+  --gold:#A9791D;
 }
 html,body{height:100%;margin:0}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{
-  background:#EDF0F4;
+  background:#E6EBE8;
+  color:var(--ink);
   font-family:"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-  overflow:hidden;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
-}
-#root{
-  position:fixed;
-  inset:0;
-  display:flex;
-  justify-content:center;
   overflow:hidden;
 }
-input,button{font-family:inherit}
-button{-webkit-tap-highlight-color:transparent}
-/* quiet, practical base styles */
-.no-anim *{animation:none !important;transition:none !important}
+#root{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;overflow:hidden;padding-top:env(safe-area-inset-top,0px)}
+/* the app frame: a phone-width column at every screen size */
+.vs-shell{
+  width:100%;
+  max-width:430px;
+  height:100%;
+  margin:0 auto;
+  background:var(--mist);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+.vs-scroll{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+/* desktop: keep the phone proportions instead of stretching the UI */
+@media (min-width:560px){
+  .vs-shell{
+    height:calc(100% - 48px);
+    max-height:880px;
+    margin:auto;
+    border:1px solid #D4DDD7;
+    border-radius:22px;
+    box-shadow:0 22px 60px rgba(8,40,30,0.16);
+  }
+  .vs-scroll{padding-bottom:16px}
+}
+input,button,select,textarea{font-family:inherit}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 input{-webkit-appearance:none;appearance:none}
-button{touch-action:manipulation}
-::selection{background:#C9D7E8}
+input[type=date]{min-width:0}
+::selection{background:#D9E9CE}
+/* tabular money columns and safe truncation */
+.num{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.vs-press:active{opacity:.72}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
 </style>
 </head>
 <body>
@@ -105,16 +133,21 @@ function Info(p){return <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x
    position pay taken off the top, remainder shared by share units.
    ============================================================ */
 
-const NAVY = "#123B63";
-const DEEP = "#0E2E4E";
-const INK = "#0C1B2A";
-const MIST = "#EFF3F8";
-const LINE = "#D7DEE8";
-const GOOD = "#0F7B40";
-const WARN = "#B26A00";
-const BAD = "#C0392B";
-const SEA = "#0E7C66";
-const GOLD = "#D9A441";
+/* Palette: deep marine green (brand), one lime accent, quiet neutrals.
+   NAVY/DEEP keep their old names so every existing rule follows the theme. */
+const NAVY = "#0B3B2E";       /* brand green — headers, primary buttons */
+const DEEP = "#08281F";       /* darkest green — bars, pressed states */
+const INK = "#0E1B15";        /* body text */
+const MUTED = "#5D6B65";      /* secondary text */
+const MIST = "#F2F5F3";       /* page background */
+const LINE = "#DEE5E0";       /* hairlines + card borders */
+const SOFT = "#E7EFEA";       /* soft green tint */
+const GOOD = "#177A4B";
+const WARN = "#8F5B00";
+const BAD = "#B3382A";
+const SEA = "#0F7A5E";
+const GOLD = "#A9791D";
+const LIME = "#C6F04E";       /* the single accent — only on green or as a fill */
 const baseFont =
   '"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 const STORE_KEY = "vaultstack:app:v2"; /* bumped: new shape */
@@ -461,7 +494,7 @@ function base64urlToBuffer(s) {
   return out.buffer;
 }
 
-/* -------- flat, practical UI kit (v8) -------- */
+/* -------- practical UI kit: flat surfaces, one accent, tabular money -------- */
 function Btn2({ label, onClick, kind = "primary", full = true, small = false, disabled = false }) {
   const base = {
     display: "flex",
@@ -469,37 +502,48 @@ function Btn2({ label, onClick, kind = "primary", full = true, small = false, di
     justifyContent: "center",
     gap: 8,
     width: full ? "100%" : "auto",
-    padding: small ? "10px 12px" : "14px 16px",
-    borderRadius: 10,
-    fontSize: small ? 15 : 16.5,
+    padding: small ? "9px 14px" : "14px 16px",
+    borderRadius: 12,
+    border: "1px solid transparent",
+    fontSize: small ? 14.5 : 16,
     fontWeight: 700,
     fontFamily: baseFont,
+    letterSpacing: 0.1,
     cursor: disabled ? "default" : "pointer",
-    touchAction: "manipulation",
   };
   const kinds = {
-    primary: { background: NAVY, color: "#fff", border: "none" },
-    ghost: { background: "#fff", color: NAVY, border: "1px solid " + NAVY },
-    quiet: { background: "#E7EBF1", color: INK, border: "1px solid " + LINE },
-    danger: { background: "#fff", color: BAD, border: "1px solid " + BAD },
-    dangerSolid: { background: BAD, color: "#fff", border: "none" },
-  }[kind];
+    primary: { background: NAVY, color: "#fff" },
+    accent: { background: LIME, color: NAVY },
+    ghost: { background: "#fff", color: NAVY, borderColor: LINE },
+    quiet: { background: "#E9EEEB", color: INK },
+    danger: { background: "#fff", color: BAD, borderColor: "#E8CDC8" },
+    dangerSolid: { background: BAD, color: "#fff" },
+    onGreen: { background: LIME, color: NAVY },
+    onGreenGhost: { background: "rgba(255,255,255,0.12)", color: "#fff", borderColor: "rgba(255,255,255,0.42)" },
+  }[kind] || {};
   return (
-    <button onClick={disabled ? undefined : onClick} style={{ ...base, ...kinds, opacity: disabled ? 0.45 : 1 }}>
+    <button
+      className="vs-press"
+      onClick={disabled ? undefined : onClick}
+      style={{ ...base, ...kinds, opacity: disabled ? 0.4 : 1 }}
+    >
       {label}
     </button>
   );
 }
+
 function Card2({ children, pad = 14, style = {}, onClick }) {
   return (
     <div
       onClick={onClick}
+      className={onClick ? "vs-press" : undefined}
       style={{
         background: "#fff",
         border: "1px solid " + LINE,
-        borderRadius: 10,
+        borderRadius: 16,
         padding: pad,
         marginBottom: 10,
+        cursor: onClick ? "pointer" : undefined,
         ...style,
       }}
     >
@@ -507,6 +551,7 @@ function Card2({ children, pad = 14, style = {}, onClick }) {
     </div>
   );
 }
+
 function Row2({ left, right, strong = false, color }) {
   return (
     <div
@@ -514,22 +559,27 @@ function Row2({ left, right, strong = false, color }) {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "baseline",
-        gap: 10,
-        padding: "6px 0",
-        fontSize: strong ? 16 : 15,
+        gap: 12,
+        padding: "7px 0",
+        fontSize: strong ? 15.5 : 14.5,
         fontWeight: strong ? 700 : 500,
         color: color || INK,
       }}
     >
-      <span style={{ color: strong ? color || INK : "#46505C" }}>{left}</span>
-      <span style={{ fontFamily: MONO2, fontVariantNumeric: "tabular-nums", fontWeight: strong ? 700 : 600 }}>{right}</span>
+      <span className="truncate" style={{ color: strong ? color || INK : MUTED }}>
+        {left}
+      </span>
+      <span className="num" style={{ fontWeight: strong ? 700 : 600, whiteSpace: "nowrap" }}>
+        {right}
+      </span>
     </div>
   );
 }
+
 function Field2({ label, value, onChange, type = "text", placeholder = "", inputMode }) {
   return (
     <label style={{ display: "block", marginBottom: 12 }}>
-      <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 5 }}>{label}</div>
+      <div style={{ fontSize: 13.5, fontWeight: 700, color: INK, marginBottom: 6 }}>{label}</div>
       <input
         type={type}
         inputMode={inputMode}
@@ -539,10 +589,10 @@ function Field2({ label, value, onChange, type = "text", placeholder = "", input
         style={{
           width: "100%",
           boxSizing: "border-box",
-          padding: "12px 12px",
+          padding: "13px 13px",
           fontSize: 16,
           border: "1px solid " + LINE,
-          borderRadius: 8,
+          borderRadius: 12,
           fontFamily: baseFont,
           outline: "none",
           background: "#fff",
@@ -554,13 +604,15 @@ function Field2({ label, value, onChange, type = "text", placeholder = "", input
     </label>
   );
 }
+
+/* bottom sheet: sticky header, scrollable body, safe-area aware */
 function Modal2({ title, onClose, children }) {
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(16,20,24,0.5)",
+        background: "rgba(8,30,22,0.46)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
@@ -575,77 +627,191 @@ function Modal2({ title, onClose, children }) {
           width: "100%",
           maxWidth: 430,
           maxHeight: "92%",
-          overflowY: "auto",
-          borderRadius: "12px 12px 0 0",
-          padding: "10px 16px 24px",
+          borderRadius: "18px 18px 0 0",
+          padding: "8px 16px 0",
           boxSizing: "border-box",
-          paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <div style={{ width: 36, height: 4, borderRadius: 99, background: LINE, margin: "4px auto 10px" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: INK }}>{title}</div>
+        <div style={{ width: 36, height: 4, borderRadius: 99, background: "#D8E0DB", margin: "4px auto 8px", flexShrink: 0 }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12, flexShrink: 0 }}>
+          <div className="truncate" style={{ fontSize: 17, fontWeight: 800, color: INK }}>{title}</div>
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
               border: "none",
-              background: "#E7EBF1",
-              borderRadius: 8,
-              padding: "7px 11px",
-              fontSize: 14,
+              background: "#E9EEEB",
+              color: INK,
+              borderRadius: 10,
+              width: 34,
+              height: 34,
+              flexShrink: 0,
+              fontSize: 15,
               fontWeight: 700,
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            Close
+            ✕
           </button>
         </div>
-        {children}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: "calc(22px + env(safe-area-inset-bottom, 0px))" }}>
+          {children}
+        </div>
       </div>
     </div>
   );
 }
+
 function Pill2({ text, tone = "neutral" }) {
   const map = {
-    neutral: { bg: "#EFF3F8", fg: "#3D4754" },
+    neutral: { bg: "#EDF1EF", fg: MUTED },
     good: { bg: "#E3F1E8", fg: GOOD },
-    warn: { bg: "#F9F1DF", fg: WARN },
-    bad: { bg: "#FBEAE8", fg: BAD },
-    navy: { bg: "#E8EEF7", fg: NAVY },
-  }[tone];
+    warn: { bg: "#F7EFDD", fg: WARN },
+    bad: { bg: "#F8E7E4", fg: BAD },
+    navy: { bg: SOFT, fg: NAVY },
+  }[tone] || { bg: "#EDF1EF", fg: MUTED };
   return (
     <span
       style={{
         background: map.bg,
         color: map.fg,
-        fontSize: 12,
-        fontWeight: 700,
+        fontSize: 11.5,
+        fontWeight: 800,
+        letterSpacing: 0.2,
         padding: "3px 9px",
-        borderRadius: 6,
+        borderRadius: 999,
         whiteSpace: "nowrap",
+        flexShrink: 0,
       }}
     >
       {text}
     </span>
   );
 }
-function Key2({ children, onClick }) {
+
+function Key2({ children, onClick, tone = "light" }) {
+  const light = tone === "light";
   return (
     <button
+      className="vs-press"
       onClick={onClick}
       style={{
-        padding: "15px 0",
-        fontSize: 22,
-        fontWeight: 700,
-        borderRadius: 10,
-        border: "1px solid " + LINE,
-        background: "#fff",
-        color: INK,
+        minHeight: 52,
+        padding: "14px 0",
+        fontSize: 21,
+        fontWeight: 600,
+        borderRadius: 14,
+        border: light ? "1px solid " + LINE : "1px solid rgba(255,255,255,0.20)",
+        background: light ? "#fff" : "rgba(255,255,255,0.10)",
+        color: light ? INK : "#fff",
         cursor: "pointer",
-        touchAction: "manipulation",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ---- small shared pieces so screens stay consistent ---- */
+function PageHead({ title, sub, right }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "18px 16px 10px" }}>
+      <div className="truncate">
+        <div style={{ fontSize: 22, fontWeight: 800, color: INK, letterSpacing: -0.3 }}>{title}</div>
+        {sub ? <div className="truncate" style={{ fontSize: 13.5, color: MUTED, marginTop: 2 }}>{sub}</div> : null}
+      </div>
+      {right || null}
+    </div>
+  );
+}
+
+function SectionHead({ text, action, onAction }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, margin: "18px 2px 8px" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.1, color: MUTED, textTransform: "uppercase" }}>
+        {text}
+      </div>
+      {action ? (
+        <button
+          onClick={onAction}
+          style={{ border: "none", background: "none", padding: 0, fontSize: 13.5, fontWeight: 700, color: SEA, cursor: "pointer" }}
+        >
+          {action}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function ListRow({ Icon, iconColor, iconBg, title, sub, amount, amountTone, onClick, last }) {
+  return (
+    <div
+      onClick={onClick}
+      className={onClick ? "vs-press" : undefined}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 14px",
+        cursor: onClick ? "pointer" : "default",
+        borderBottom: last ? "none" : "1px solid " + LINE,
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          background: iconBg || SOFT,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {Icon ? <Icon size={19} color={iconColor || NAVY} /> : null}
+      </div>
+      <div className="truncate" style={{ flex: 1, minWidth: 0 }}>
+        <div className="truncate" style={{ fontWeight: 700, fontSize: 15, color: INK }}>{title}</div>
+        {sub ? <div className="truncate" style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{sub}</div> : null}
+      </div>
+      {amount ? (
+        <div className="num" style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap", color: amountTone || INK }}>
+          {amount}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IconBtn({ onClick, label, children }) {
+  return (
+    <button
+      className="vs-press"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        border: "1px solid rgba(255,255,255,0.30)",
+        background: "rgba(255,255,255,0.12)",
+        color: "#fff",
+        borderRadius: 12,
+        padding: "8px 11px",
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 0,
       }}
     >
       {children}
@@ -709,89 +875,110 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
   return (
     <div
       style={{
+        flex: 1,
+        minHeight: 0,
+        width: "100%",
+        background: DEEP,
         display: "flex",
         flexDirection: "column",
-        minHeight: "100%",
-        width: "100%",
-        padding: "24px 22px calc(20px + env(safe-area-inset-bottom, 0px))",
+        padding: "16px 20px calc(14px + env(safe-area-inset-bottom, 0px))",
         boxSizing: "border-box",
-        textAlign: "center",
+        overflow: "hidden",
       }}
     >
-      <div style={{ flex: 1 }} />
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexShrink: 0 }}>
         <div
           style={{
-            width: 60,
-            height: 60,
-            borderRadius: 14,
-            background: "#fff",
-            border: "1px solid " + LINE,
+            width: 32,
+            height: 32,
+            borderRadius: 10,
+            background: "rgba(255,255,255,0.12)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Lock size={28} color={NAVY} strokeWidth={2.2} />
+          <Anchor size={17} color={LIME} strokeWidth={2.4} />
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: 0.2 }}>VaultStack</div>
+      </div>
+
+      <div style={{ flexShrink: 0, textAlign: "center", marginTop: 16 }}>
+        <div style={{ fontSize: 19, fontWeight: 800, color: "#fff" }}>{title}</div>
+        {subtitle ? (
+          <div className="truncate" style={{ fontSize: 13.5, color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
+            {subtitle}
+          </div>
+        ) : null}
+        <div style={{ display: "flex", justifyContent: "center", gap: 12, margin: "14px 0 4px" }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 13,
+                height: 13,
+                borderRadius: 999,
+                border: "2px solid rgba(255,255,255,0.42)",
+                background: i < digits.length ? LIME : "transparent",
+              }}
+            />
+          ))}
+        </div>
+        <div style={{ minHeight: 18, color: "#FFB8AB", fontSize: 13.5, fontWeight: 600 }}>{errorMsg || ""}</div>
+      </div>
+
+      <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 4 }}>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 310,
+            maxHeight: 360,
+            height: "100%",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gridAutoRows: "1fr",
+            gap: 9,
+          }}
+        >
+          {keys.map((k, i) =>
+            k === "" ? (
+              <div key={i} />
+            ) : (
+              <Key key={i} tone="dark" onClick={() => press(k)}>
+                {k === "del" ? <Delete size={19} color="#fff" /> : k}
+              </Key>
+            )
+          )}
         </div>
       </div>
-      <div style={{ fontSize: 21, fontWeight: 700, color: INK }}>{title}</div>
-      {subtitle ? (
-        <div style={{ fontSize: 15, color: "#46505C", marginTop: 5 }}>{subtitle}</div>
-      ) : null}
-      <div style={{ display: "flex", justifyContent: "center", gap: 14, margin: "20px 0 6px" }}>
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 999,
-              border: "2px solid " + NAVY,
-              background: i < digits.length ? NAVY : "transparent",
-            }}
-          />
-        ))}
-      </div>
-      <div style={{ minHeight: 20, color: BAD, fontSize: 14, fontWeight: 600 }}>{errorMsg || ""}</div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 10,
-          width: "100%",
-          maxWidth: 320,
-          margin: "6px auto 0",
-        }}
-      >
-        {keys.map((k, i) =>
-          k === "" ? (
-            <div key={i} />
-          ) : (
-            <Key key={i} onClick={() => press(k)}>
-              {k === "del" ? <Delete size={20} /> : k}
-            </Key>
-          )
-        )}
-      </div>
-      {bio && bio.available ? (
-        <div style={{ marginTop: 18 }}>
-          <div style={{ width: "100%", maxWidth: 320, margin: "0 auto" }}>
+
+      <div style={{ flexShrink: 0, paddingTop: 10 }}>
+        {bio && bio.available ? (
+          <div>
             <Btn
-              label={bio.unlocking ? "Waiting for scan…" : "Unlock with face or fingerprint"}
-              kind="ghost"
+              label={bio.unlocking ? "Waiting for the scan…" : "Unlock with face or fingerprint"}
+              kind="onGreenGhost"
+              small
               onClick={bio.onUnlock}
               disabled={bio.unlocking}
             />
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: 12,
+                marginTop: 8,
+                color: bio.unlockError ? "#FFB8AB" : "rgba(255,255,255,0.58)",
+              }}
+            >
+              {bio.unlockError || "No sensor? Type your PIN above."}
+            </div>
           </div>
-          {bio.unlockError ? (
-            <div style={{ color: BAD, fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>{bio.unlockError}</div>
-          ) : (
-            <div style={{ color: "#5A6675", fontSize: 13, marginTop: 8 }}>Or enter the PIN above.</div>
-          )}
-        </div>
-      ) : null}
-      <div style={{ flex: 1.2 }} />
+        ) : (
+          <div style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.52)" }}>
+            Your PIN is kept on this phone only.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -864,135 +1051,131 @@ function Onboarding3({ onFinish, onDemo, bio }) {
 
   const header = (t, s, n) => (
     <div style={{ marginBottom: 16 }}>
-      {n && <div style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, letterSpacing: 0.8 }}>{n}</div>}
-      <div style={{ fontSize: 21, fontWeight: 700, color: INK, marginTop: 4 }}>{t}</div>
-      {s && <div style={{ fontSize: 15, color: "#46505C", marginTop: 4 }}>{s}</div>}
+      {n ? (
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: MUTED, letterSpacing: 1.2, textTransform: "uppercase" }}>
+          {n}
+        </div>
+      ) : null}
+      <div style={{ fontSize: 21, fontWeight: 800, color: INK, marginTop: 4, letterSpacing: -0.2 }}>{t}</div>
+      {s ? <div style={{ fontSize: 14, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>{s}</div> : null}
     </div>
   );
 
   if (bioStep)
     return (
-      <div style={{ padding: "24px 20px", textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+      <div style={{ padding: "18px 16px 24px" }}>
+        <div style={{ background: NAVY, borderRadius: 18, padding: "18px 16px" }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
-              background: "#fff",
-              border: "1px solid " + LINE,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.14)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Lock size={26} color={NAVY} strokeWidth={2.2} />
+            <Lock size={20} color={LIME} />
+          </div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", marginTop: 12, lineHeight: 1.25 }}>
+            Unlock with your face or fingerprint?
+          </div>
+          <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.82)", marginTop: 8, lineHeight: 1.5 }}>
+            {bio.supported
+              ? "Your phone will ask for Face ID, Touch ID or your fingerprint when you open VaultStack. The PIN keeps working if a scan fails."
+              : "This phone or browser does not support biometric unlock, so you keep using your PIN."}
           </div>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: INK }}>
-          Unlock with your face or fingerprint?
-        </div>
-        <div style={{ fontSize: 15, color: "#46505C", margin: "10px auto 0", maxWidth: 360, textAlign: "left" }}>
-          {bio.supported
-            ? "Your phone will ask for Face ID, Touch ID or your fingerprint when you open VaultStack. The PIN keeps working if the scan fails or the device has no sensor."
-            : "This device or browser does not support biometric unlock. You will keep using your PIN."}
-        </div>
-        <div style={{ fontSize: 13.5, color: "#5A6675", margin: "8px auto 18px", maxWidth: 360, textAlign: "left" }}>
-          Your PIN is never stored in the biometric record, and fingerprint data never leaves your
-          device — the phone only confirms it is you.
+        <div style={{ fontSize: 12.5, color: MUTED, margin: "10px 2px 16px", lineHeight: 1.5 }}>
+          Your PIN is never stored in the unlock record, and fingerprint data never leaves your phone —
+          the phone only confirms that it is you.
         </div>
         {bio.supported && bio.error ? (
-          <div style={{ color: BAD, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{bio.error}</div>
+          <div style={{ color: BAD, fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>{bio.error}</div>
         ) : null}
         {bio.supported ? (
           <div>
-            <Btn label={bio.busy ? "Waiting for scan…" : "Yes, use face or fingerprint"} onClick={() => bio.onEnable(draft)} disabled={bio.busy} />
+            <Btn
+              label={bio.busy ? "Waiting for the scan…" : "Yes, use face or fingerprint"}
+              kind="accent"
+              onClick={() => bio.onEnable(draft)}
+              disabled={bio.busy}
+            />
             <div style={{ height: 10 }} />
           </div>
         ) : null}
-        <Btn label={bio.supported ? "No, PIN only" : "Continue"} kind="quiet" onClick={() => bio.onSkip(draft)} />
+        <Btn
+          label={bio.supported ? "No, PIN only" : "Continue"}
+          kind="quiet"
+          onClick={() => bio.onSkip(draft)}
+        />
       </div>
     );
 
   if (step === 0)
     return (
-      <div style={{ padding: "0 22px 24px", textAlign: "center" }}>
+      <div style={{ paddingBottom: 26 }}>
         <div
           style={{
             background: NAVY,
-            margin: "0 -22px",
-            padding: "30px 22px 34px",
-            borderRadius: "0 0 12px 12px",
+            padding: "30px 20px 26px",
+            borderBottomLeftRadius: 22,
+            borderBottomRightRadius: 22,
+            textAlign: "center",
           }}
         >
           <div
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: 14,
-              background: "#fff",
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: LIME,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 12px",
+              margin: "0 auto 14px",
             }}
           >
-            <Anchor size={34} color={NAVY} strokeWidth={2.2} />
+            <Anchor size={30} color={NAVY} strokeWidth={2.4} />
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>VaultStack</div>
-          <div style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "6px auto 0", maxWidth: 300 }}>
-            Your fishing money, kept safe and clear.
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: -0.3 }}>VaultStack</div>
+          <div
+            style={{
+              fontSize: 13.5,
+              color: "rgba(255,255,255,0.80)",
+              margin: "8px auto 0",
+              maxWidth: 300,
+              lineHeight: 1.5,
+            }}
+          >
+            The season money book for fishing crews. Works offline and keeps every cedi accounted for.
           </div>
         </div>
-        <div
-          style={{
-            textAlign: "left",
-            maxWidth: 340,
-            margin: "18px auto 0",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
-          {[
-            { Icon: Fish, text: "Log every catch and sale" },
-            { Icon: Users, text: "Share the pot fairly by units" },
-            { Icon: Waves, text: "Know the sea before you sail" },
-          ].map(({ Icon, text }) => (
-            <div
-              key={text}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                background: "#fff",
-                border: "1px solid " + LINE,
-                borderRadius: 10,
-                padding: "11px 14px",
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  background: "#E8EEF7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={20} color={NAVY} />
-              </div>
-              <span style={{ fontSize: 15, fontWeight: 600, color: INK }}>{text}</span>
-            </div>
-          ))}
+        <div style={{ padding: "18px 16px 0" }}>
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {[
+              { Icon: Fish, title: "Log every landing", sub: "Sales and expenses in three taps" },
+              { Icon: Users, title: "Share the pot fairly", sub: "Position pay first, then units" },
+              { Icon: Waves, title: "Check the sea", sub: "Wind, waves and rain at Adina" },
+            ].map((row, i, arr) => (
+              <ListRow
+                key={row.title}
+                Icon={row.Icon}
+                title={row.title}
+                sub={row.sub}
+                last={i === arr.length - 1}
+              />
+            ))}
+          </Card>
+          <div style={{ height: 6 }} />
+          <Btn label="Set up my company" onClick={() => setStep(1)} />
+          <div style={{ height: 10 }} />
+          <Btn label="Load demo data (PIN: 1234)" kind="ghost" onClick={onDemo} />
+          <div style={{ fontSize: 12, color: MUTED, textAlign: "center", marginTop: 14, lineHeight: 1.5 }}>
+            Everything stays on this phone. No account and no network needed.
+          </div>
         </div>
-        <div style={{ height: 22 }} />
-        <Btn label="Set up my company" onClick={() => setStep(1)} />
-        <div style={{ height: 10 }} />
-        <Btn label="Load demo data (PIN: 1234)" kind="ghost" onClick={onDemo} />
       </div>
     );
 
@@ -1102,7 +1285,7 @@ function Onboarding3({ onFinish, onDemo, bio }) {
                     padding: "10px 14px",
                     borderRadius: 8,
                     border: "1px solid " + (wkPos === null ? NAVY : LINE),
-                    background: wkPos === null ? "#E8EEF7" : "#fff",
+                    background: wkPos === null ? SOFT : "#fff",
                     fontWeight: 700,
                     fontSize: 14.5,
                     color: INK,
@@ -1119,7 +1302,7 @@ function Onboarding3({ onFinish, onDemo, bio }) {
                       padding: "10px 14px",
                       borderRadius: 8,
                       border: "1px solid " + (wkPos === p.id ? NAVY : LINE),
-                      background: wkPos === p.id ? "#E8EEF7" : "#fff",
+                      background: wkPos === p.id ? SOFT : "#fff",
                       fontWeight: 700,
                       fontSize: 14.5,
                       color: INK,
@@ -1225,7 +1408,7 @@ function VaultStackV3() {
 
   if (state === null)
     return (
-      <div style={{ fontFamily: baseFont, padding: 40, textAlign: "center", color: "#5A6675" }}>
+      <div style={{ fontFamily: baseFont, padding: 40, textAlign: "center", color: MUTED }}>
         Opening VaultStack…
       </div>
     );
@@ -1321,26 +1504,11 @@ function VaultStackV3() {
     setFlow(null);
   };
 
-  const shell = (children) => (
-    <div
-      style={{
-        fontFamily: baseFont,
-        background: MIST,
-        height: "100%",
-        maxWidth: 430,
-        margin: "0 auto",
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {children}
-    </div>
-  );
+  const shell = (children) => <div className="vs-shell">{children}</div>;
 
   if (!state.setupDone)
     return shell(
-      <div style={{ background: "#fff", flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div className="vs-scroll" style={{ background: "#fff" }}>
         <Onboarding3
           onFinish={(d) => {
             setState(d);
@@ -1379,7 +1547,7 @@ function VaultStackV3() {
 
   if (locked)
     return shell(
-      <div style={{ background: MIST, flex: 1, minHeight: 0, display: "flex" }}>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", background: DEEP, overflow: "hidden" }}>
         <PinPad3
           title="Enter your PIN"
           subtitle={state.company.name}
@@ -1413,9 +1581,9 @@ function VaultStackV3() {
 
   const tabs = [
     { id: "home", Icon: Home, label: "Home" },
-    { id: "history", Icon: Banknote, label: "History" },
+    { id: "sales", Icon: Banknote, label: "Sales" },
+    { id: "expenses", Icon: Package, label: "Expenses" },
     { id: "workers", Icon: Users, label: "Workers" },
-    { id: "weather", Icon: Waves, label: "Weather" },
     { id: "more", Icon: Settings, label: "More" },
   ];
 
@@ -1424,6 +1592,10 @@ function VaultStackV3() {
     setExpSession([]);
     setFlow("expense-cat");
   };
+  const lock = () => {
+    setFlow(null);
+    setLocked(true);
+  };
 
   const availableCats = state.expenseCats.filter(
     (c) => !expSession.some((s) => s.cat.toLowerCase() === c.toLowerCase())
@@ -1431,56 +1603,33 @@ function VaultStackV3() {
   const sessionTotal = expSession.reduce((s, x) => s + x.amount, 0);
 
   return shell(
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-      <div
-        style={{
-          background: NAVY,
-          color: "#fff",
-          padding: "13px 16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ fontWeight: 700, fontSize: 17, display: "flex", alignItems: "center", gap: 8 }}>
-          <Anchor size={18} strokeWidth={2.4} /> VaultStack
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 11.5, opacity: 0.8 }}>
-            {saveStamp === "saving" ? "Saving…" : saveStamp === "error" ? "Not saved" : "Saved on this phone"}
-          </span>
-          <button
-            onClick={() => { setLocked(true); setTab("home"); }}
-            title="Lock app"
-            style={{
-              background: "rgba(255,255,255,0.16)",
-              border: "none",
-              color: "#fff",
-              borderRadius: 8,
-              padding: "6px 10px",
-              fontSize: 12.5,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Lock size={13} /> Lock
-          </button>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, padding: 14, overflowY: "auto", minHeight: 0 }}>
-        {tab === "home" && <HomeTabV2 state={state} fin={fin} openSale={openSale} openExpense={openExpense} />}
-        {tab === "history" && (
-          <HistoryTabV2
+    <>
+      <div className="vs-scroll">
+        {tab === "home" && (
+          <HomeTabV2
             state={state}
             fin={fin}
             openSale={openSale}
             openExpense={openExpense}
+            go={setTab}
+            onLock={lock}
+            saveStamp={saveStamp}
+          />
+        )}
+        {tab === "sales" && (
+          <SalesTab
+            state={state}
+            fin={fin}
+            openSale={openSale}
             removeSale={removeSale}
+            toast={toast}
+          />
+        )}
+        {tab === "expenses" && (
+          <ExpensesTab
+            state={state}
+            fin={fin}
+            openExpense={openExpense}
             removeExpense={removeExpense}
             toast={toast}
           />
@@ -1498,13 +1647,15 @@ function VaultStackV3() {
             toast={toast}
           />
         )}
-        {tab === "weather" && <WeatherTabV2 />}
+        {tab === "weather" && <WeatherTabV2 onBack={() => setTab("home")} />}
         {tab === "more" && (
           <MoreTabV2
             state={state}
             fin={fin}
             onCloseSeason={closeSeason}
             onReset={resetAll}
+            onLock={lock}
+            go={setTab}
             bio={{
               supported: bioSupported,
               enrolled: bioEnrolled,
@@ -1535,6 +1686,86 @@ function VaultStackV3() {
         )}
       </div>
 
+      {toastMsg && (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 96,
+            transform: "translateX(-50%)",
+            background: DEEP,
+            color: "#fff",
+            padding: "11px 16px",
+            borderRadius: 999,
+            fontSize: 13.5,
+            fontWeight: 700,
+            zIndex: 60,
+            maxWidth: "88%",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            boxShadow: "0 10px 26px rgba(8,40,30,0.30)",
+          }}
+        >
+          <Check size={16} color={LIME} strokeWidth={3} />
+          <span className="truncate">{toastMsg}</span>
+        </div>
+      )}
+
+      <div style={{ background: DEEP, flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div style={{ display: "flex", alignItems: "stretch", padding: "7px 6px 8px" }}>
+          {tabs.map(({ id, Icon, label }) => {
+            const on = tab === id;
+            return (
+              <button
+                key={id}
+                className="vs-press"
+                onClick={() => {
+                  setTab(id);
+                  setFlow(null);
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: "none",
+                  background: "none",
+                  padding: "2px 0",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 3,
+                }}
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 40,
+                    height: 26,
+                    borderRadius: 10,
+                    background: on ? "rgba(198,240,78,0.16)" : "transparent",
+                  }}
+                >
+                  <Icon size={19} strokeWidth={on ? 2.4 : 2} color={on ? LIME : "rgba(255,255,255,0.62)"} />
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: on ? 700 : 500,
+                    color: on ? LIME : "rgba(255,255,255,0.62)",
+                    fontFamily: baseFont,
+                  }}
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {flow === "sale" && (
         <KeypadSheet
           title="Log a fish sale"
@@ -1558,13 +1789,14 @@ function VaultStackV3() {
               return (
                 <button
                   key={name}
+                  className="vs-press"
                   onClick={() => {
                     setExpCat(name);
                     setFlow("expense-amt");
                   }}
                   style={{
                     padding: "16px 8px",
-                    borderRadius: 10,
+                    borderRadius: 14,
                     border: "1px solid " + LINE,
                     background: "#fff",
                     cursor: "pointer",
@@ -1574,20 +1806,21 @@ function VaultStackV3() {
                     gap: 8,
                   }}
                 >
-                  <Icon size={26} color={NAVY} strokeWidth={2.2} />
-                  <span style={{ fontWeight: 700, fontSize: 15, color: INK }}>{name}</span>
+                  <Icon size={22} color={NAVY} strokeWidth={2.2} />
+                  <span style={{ fontWeight: 700, fontSize: 14.5, color: INK }}>{name}</span>
                 </button>
               );
             })}
             <button
+              className="vs-press"
               onClick={() => {
                 setNewCatName("");
                 setFlow("expense-name");
               }}
               style={{
                 padding: "16px 8px",
-                borderRadius: 10,
-                border: "1px dashed " + NAVY,
+                borderRadius: 14,
+                border: "1px dashed #B9C6BF",
                 background: "#fff",
                 cursor: "pointer",
                 display: "flex",
@@ -1596,33 +1829,35 @@ function VaultStackV3() {
                 gap: 8,
               }}
             >
-              <Plus size={26} color={NAVY} strokeWidth={2.2} />
-              <span style={{ fontWeight: 700, fontSize: 15, color: NAVY }}>Other</span>
+              <Plus size={22} color={NAVY} strokeWidth={2.2} />
+              <span style={{ fontWeight: 700, fontSize: 14.5, color: NAVY }}>Other</span>
             </button>
           </div>
 
           {expSession.length > 0 && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: INK, marginBottom: 4 }}>Logged just now</div>
+              <div style={{ fontWeight: 700, fontSize: 14.5, color: INK, marginBottom: 4 }}>Logged just now</div>
               {expSession.map((s, i) => {
                 const SIcon = catIcon(s.cat);
                 return (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 15, color: "#46505C" }}>
-                      <Check size={17} color={GOOD} strokeWidth={3} /> <SIcon size={17} color={NAVY} /> {s.cat}
+                    <span className="truncate" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14.5, color: MUTED }}>
+                      <Check size={16} color={GOOD} strokeWidth={3} /> <SIcon size={16} color={NAVY} /> {s.cat}
                     </span>
-                    <span style={{ fontFamily: MONO2, fontWeight: 700, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>− {fmt(s.amount)}</span>
+                    <span className="num" style={{ fontWeight: 700, fontSize: 14 }}>− {fmt(s.amount)}</span>
                   </div>
                 );
               })}
               <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
               <Row left="Total this sitting" right={"− " + fmt(sessionTotal)} strong />
               <div style={{ height: 10 }} />
-              <Btn label={
-                <>
-                  <Check size={20} /> Done
-                </>
-              } onClick={() => setFlow(null)} />
+              <Btn
+                label={<><Check size={19} /> Done</>}
+                onClick={() => {
+                  setFlow(null);
+                  setTab("expenses");
+                }}
+              />
             </div>
           )}
         </Modal>
@@ -1630,7 +1865,7 @@ function VaultStackV3() {
 
       {flow === "expense-name" && (
         <Modal title="Name this expense" onClose={() => setFlow("expense-cat")}>
-          <div style={{ fontSize: 15, color: "#46505C", marginBottom: 14 }}>
+          <div style={{ fontSize: 14.5, color: MUTED, marginBottom: 14 }}>
             Give it a name once. It will be saved as a button for next time.
           </div>
           <Field label="What is it called?" value={newCatName} onChange={setNewCatName} placeholder="e.g. Net mending" />
@@ -1661,102 +1896,34 @@ function VaultStackV3() {
           }}
         />
       )}
-
-      {toastMsg && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 84,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: INK,
-            color: "#fff",
-            padding: "11px 16px",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 700,
-            zIndex: 60,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <Check size={17} color="#7BE495" /> {toastMsg}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          borderTop: "1px solid " + LINE,
-          background: "#fff",
-          flexShrink: 0,
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
-      >
-        {tabs.map(({ id, Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => {
-              setTab(id);
-              setFlow(null);
-            }}
-            style={{
-              flex: 1,
-              padding: "9px 0 8px",
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              color: tab === id ? NAVY : "#68727E",
-              fontWeight: tab === id ? 700 : 500,
-              fontSize: 12,
-              fontFamily: baseFont,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 3,
-            }}
-          >
-            <Icon size={21} strokeWidth={tab === id ? 2.5 : 2} color={tab === id ? NAVY : "#68727E"} />
-            {label}
-            <div style={{ width: 20, height: 3, background: tab === id ? NAVY : "transparent", borderRadius: 2 }} />
-          </button>
-        ))}
-      </div>
-    </div>
+    </>
   );
 }
 
-
 /* ============================================================
-   UI REFRESH (v7) — redesigned tab components.
-   Bound over the originals at the end of this block; the original
-   component definitions further below remain as unused fallbacks.
+   Screens — one design system: green headers, flat white cards,
+   tabular money, no decoration that does not carry information.
    ============================================================ */
 const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
 
 function Avatar({ name, size = 44 }) {
   const parts = (name || "?").trim().split(/\s+/);
   const initials = parts.slice(0, 2).map((p) => p[0] || "").join("").toUpperCase() || "?";
-  const hues = [210, 168, 38, 8, 262, 140];
-  let h = 0;
-  for (let i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  const hue = hues[h % hues.length];
   return (
     <div
       style={{
         width: size,
         height: size,
-        borderRadius: Math.round(size * 0.32),
-        background:
-          "linear-gradient(135deg, hsl(" + hue + ", 42%, 40%), hsl(" + hue + ", 50%, 26%))",
-        color: "#fff",
+        borderRadius: 999,
+        background: SOFT,
+        color: NAVY,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         fontWeight: 800,
         fontSize: Math.round(size * 0.36),
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
         flexShrink: 0,
-        boxShadow: "inset 0 -2px 6px rgba(0,0,0,0.18)",
       }}
     >
       {initials}
@@ -1816,269 +1983,307 @@ function seaVerdict(wx) {
     : { label: "SAFE", col: GOOD, msg: "Good conditions for fishing today." };
 }
 
-
-function SplitCard({ fin }) {
-  return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1 }}>HOW THE POT SPLITS</div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: "#5A6675" }}>{fin.totalUnits} units in crew</div>
-      </div>
-      <Row left="Pot to split" right={fmt(fin.potForSplit)} />
-      {fin.positionsTotal > 0 && (
-        <Row left="Position pay taken out first" right={"− " + fmt(fin.positionsTotal)} />
-      )}
-      <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-      <Row left="Each unit is worth" right={fmt(fin.vpu)} strong color={NAVY} />
-      <div style={{ fontSize: 13, color: "#5A6675", marginTop: 4 }}>
-        Units × value per unit = each worker{"'"}s share.
-      </div>
-    </Card>
-  );
-}
-
 /* ---------------- Home (dashboard) ---------------- */
-function HomeTabV2({ state, fin, openSale, openExpense }) {
-  const [showSea, setShowSea] = useState(false);
+function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp }) {
   const wx = useSea();
   const v = seaVerdict(wx);
-  const owner = state.company.owner ? state.company.owner.split(" ")[0] : "";
+  const owner = state.company.owner ? state.company.owner.trim() : "";
+  const first = owner ? owner.split(" ")[0] : "";
+  const initials =
+    (owner || state.company.name || "VS")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((p) => p[0] || "")
+      .join("")
+      .toUpperCase() || "VS";
+
+  const recent = useMemo(() => {
+    const s = state.sales.map((x) => ({ ...x, kind: "sale" }));
+    const e = state.expenses.map((x) => ({ ...x, kind: "expense" }));
+    return [...s, ...e]
+      .sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (ta !== tb) return tb - ta;
+        return a.date < b.date ? 1 : -1;
+      })
+      .slice(0, 4);
+  }, [state.sales, state.expenses]);
+
+  const totalCosts = fin.fixedTotal + fin.varTotal;
+  const toPayOut = state.workers.reduce((s, w) => s + Math.max(0, workerNumbers(state, w, fin).payout), 0);
+  const owing = state.workers.reduce((s, w) => s + Math.max(0, -workerNumbers(state, w, fin).payout), 0);
+  const savedText =
+    saveStamp === "saving" ? "Saving…" : saveStamp === "error" ? "Not saved on this phone" : "Saved on this phone";
+
+  const strip = [
+    { k: "Sales", v: fmt(fin.grossSales) },
+    { k: "Costs", v: fmt(totalCosts) },
+    { k: "Per unit", v: fmt(fin.vpu) },
+  ];
+
   return (
     <div>
-      <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5A6675", letterSpacing: 1 }}>
-        {state.season.name ? state.season.name.toUpperCase() : "THIS SEASON"} · SINCE {fmtDate(state.season.start).toUpperCase()}
-      </div>
-      <div style={{ fontSize: 21, fontWeight: 800, color: INK, marginTop: 2 }}>
-        {owner ? "Akwaaba, " + owner : "Season so far"}
-      </div>
-
-      <Card pad={14} style={{ marginTop: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#5A6675" }}>Money in the pot (net)</div>
-        <div style={{ fontFamily: MONO, fontSize: 30, fontWeight: 800, color: INK, fontVariantNumeric: "tabular-nums", lineHeight: 1.15 }}>
-          {fmt(fin.netPot)}
-        </div>
-        {fin.netPot < 0 && (
-          <div style={{ fontSize: 13.5, color: BAD, fontWeight: 700, marginTop: 2 }}>
-            Expenses are bigger than sales. Shares are worth GH₵ 0 until the pot recovers.
+      {/* ---- season header: the one thing a skipper checks first ---- */}
+      <div
+        style={{
+          background: NAVY,
+          padding: "16px 16px 18px",
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 22,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.14)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 800,
+              fontSize: 14.5,
+              flexShrink: 0,
+            }}
+          >
+            {initials}
           </div>
-        )}
-      </Card>
+          <div className="truncate" style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.72)" }}>Akwaaba</div>
+            <div className="truncate" style={{ fontSize: 15.5, fontWeight: 800, color: "#fff" }}>
+              {first || state.company.name || "Skipper"}
+            </div>
+          </div>
+          {onLock ? (
+            <IconBtn onClick={onLock} label="Lock VaultStack">
+              <Lock size={14} /> Lock
+            </IconBtn>
+          ) : null}
+        </div>
 
-      <div style={{ display: "flex", gap: 10, margin: "2px 0 10px" }}>
-        <Btn label={<><Plus size={20} /> Log sale</>} onClick={openSale} />
-        <Btn label={<><Minus size={20} /> Log expense</>} kind="ghost" onClick={openExpense} />
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.74)" }}>Money in the pot</div>
+          <div className="num" style={{ fontSize: 33, fontWeight: 800, color: "#fff", lineHeight: 1.1, marginTop: 2 }}>
+            {fmt(fin.netPot)}
+          </div>
+          <div className="truncate" style={{ fontSize: 12.5, color: "rgba(255,255,255,0.70)", marginTop: 5 }}>
+            {(state.season.name || "This season") + " · since " + fmtDate(state.season.start)}
+          </div>
+          {fin.netPot < 0 ? (
+            <div style={{ fontSize: 12.5, color: "#FFC9BB", marginTop: 6, fontWeight: 600 }}>
+              Costs are ahead of sales. Shares stay at GH₵ 0 until the pot recovers.
+            </div>
+          ) : null}
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 15 }}>
+          <Btn label={<><Plus size={18} /> Log sale</>} kind="onGreen" onClick={openSale} />
+          <Btn label={<><Minus size={18} /> Log expense</>} kind="onGreenGhost" onClick={openExpense} />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            marginTop: 15,
+            background: "rgba(255,255,255,0.10)",
+            borderRadius: 14,
+            padding: "11px 12px",
+          }}
+        >
+          {strip.map((s, i) => (
+            <div
+              key={s.k}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                paddingLeft: i === 0 ? 0 : 12,
+                borderLeft: i === 0 ? "none" : "1px solid rgba(255,255,255,0.18)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, color: "rgba(255,255,255,0.66)", textTransform: "uppercase" }}>
+                {s.k}
+              </div>
+              <div className="num truncate" style={{ fontSize: 13.5, fontWeight: 700, color: "#fff", marginTop: 2 }}>
+                {s.v}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <Card pad={12} onClick={() => setShowSea(true)} style={{ borderLeft: "4px solid " + v.col, cursor: "pointer" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <Waves size={22} color={v.col} style={{ flexShrink: 0 }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontWeight: 800, fontSize: 15, color: v.col }}>{v.label}</span>
-                {wx.status === "demo" && <Pill text="Offline" tone="neutral" />}
-              </div>
-              <div style={{ fontSize: 13, color: "#5A6675", marginTop: 1 }}>
-                {wx.status === "loading"
-                  ? "Checking the sea at Adina…"
-                  : "Wind " + wx.wind + " km/h · Waves " + wx.wave + " m"}
+      <div style={{ padding: "0 14px" }}>
+        <SectionHead text="This season" />
+        <Card pad={14}>
+          <Row left="Fish sales" right={fmt(fin.grossSales)} />
+          <Row left="Fixed costs" right={"− " + fmt(fin.fixedTotal)} />
+          <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
+          {fin.positionsTotal > 0 && fin.beforeSplit ? (
+            <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
+          ) : null}
+          <div style={{ borderTop: "1px solid " + LINE, margin: "6px 0 2px" }} />
+          <Row left="Money in the pot" right={fmt(fin.netPot)} strong />
+          <Row left="Pot to share by units" right={fmt(fin.potForSplit)} strong />
+          <Row left={"Each unit is worth (" + fin.totalUnits + " units)"} right={fmt(fin.vpu)} strong color={NAVY} />
+        </Card>
+
+        <SectionHead text="Crew" action="Manage" onAction={() => go("workers")} />
+        <Card pad={0} style={{ overflow: "hidden" }}>
+          <ListRow
+            Icon={Users}
+            title={state.workers.length + (state.workers.length === 1 ? " worker" : " workers")}
+            sub={fin.totalUnits + " share units in the crew"}
+            onClick={() => go("workers")}
+          />
+          <ListRow
+            Icon={Banknote}
+            iconColor={GOOD}
+            iconBg="#E3F1E8"
+            title="To pay out"
+            sub="If the season closed today"
+            amount={fmt(toPayOut)}
+            amountTone={GOOD}
+            onClick={() => go("workers")}
+          />
+          <ListRow
+            Icon={Info}
+            iconColor={owing > 0 ? BAD : MUTED}
+            iconBg={owing > 0 ? "#F8E7E4" : "#EDF1EF"}
+            title="Owing to the boat"
+            sub={owing > 0 ? "Carries to next season" : "Nobody is in debt"}
+            amount={fmt(owing)}
+            amountTone={owing > 0 ? BAD : MUTED}
+            onClick={() => go("workers")}
+            last
+          />
+        </Card>
+
+        <SectionHead text="Sea at Adina" action="Full report" onAction={() => go("weather")} />
+        <Card pad={13} onClick={() => go("weather")} style={{ borderLeft: "4px solid " + v.col }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <Waves size={20} color={v.col} style={{ flexShrink: 0 }} />
+              <div className="truncate" style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontWeight: 800, fontSize: 14.5, color: v.col }}>{v.label}</span>
+                  {wx.status === "demo" ? <Pill text="Offline" tone="neutral" /> : null}
+                </div>
+                <div className="truncate" style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>
+                  {wx.status === "loading" ? "Checking conditions…" : "Wind " + wx.wind + " km/h · waves " + wx.wave + " m"}
+                </div>
               </div>
             </div>
           </div>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: NAVY, whiteSpace: "nowrap" }}>Details →</span>
-        </div>
-      </Card>
+        </Card>
 
-      <Card pad={4}>
-        <Row left="Fish sales" right={fmt(fin.grossSales)} />
-        <Row left="Fixed expenses" right={"− " + fmt(fin.fixedTotal)} />
-        <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
-        {fin.positionsTotal > 0 && fin.beforeSplit && (
-          <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
-        )}
-        <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-        <Row left="Pot to split" right={fmt(fin.potForSplit)} strong />
-        <Row left="Value per unit" right={fmt(fin.vpu)} strong color={NAVY} />
-      </Card>
-
-      <SplitCard fin={fin} />
-
-      {showSea && (
-        <Modal title="Sea conditions — Adina" onClose={() => setShowSea(false)}>
-          <Card pad={14} style={{ borderLeft: "4px solid " + v.col }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: v.col }}>{v.label}</div>
-            <div style={{ fontSize: 14.5, color: INK, marginTop: 4 }}>{v.msg || "Checking the sea…"}</div>
-          </Card>
-          <Card pad={6}>
-            <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Wind size={18} color={NAVY} /> Wind</span>} right={wx.status === "loading" ? "…" : wx.wind + " km/h"} />
-            <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Waves size={18} color={NAVY} /> Waves</span>} right={wx.status === "loading" ? "…" : wx.wave + " m"} />
-            <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><CloudRain size={18} color={NAVY} /> Rain</span>} right={wx.status === "loading" ? "…" : wx.rain + " mm"} />
-          </Card>
-          <div style={{ fontSize: 13.5, color: "#5A6675", padding: "0 4px 6px" }}>
-            <b>Guide:</b> waves under 1.2 m and wind under 20 km/h are safe. Over 2 m or 30 km/h, stay ashore.
-          </div>
-          {wx.status === "demo" && (
-            <div style={{ fontSize: 13.5, color: "#5A6675", padding: "0 4px 6px" }}>
-              <b>Offline.</b> Showing saved demo conditions — live data returns when connection is back.
+        <SectionHead text="Recent activity" action="See all" onAction={() => go("sales")} />
+        {recent.length === 0 ? (
+          <Card pad={14}>
+            <div style={{ fontSize: 14, color: MUTED }}>
+              Nothing logged yet. Tap “Log sale” after you sell fish, or “Log expense” when you buy premix.
             </div>
-          )}
-        </Modal>
-      )}
+          </Card>
+        ) : (
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {recent.map((r, i) => {
+              const Icon = r.kind === "sale" ? Fish : catIcon(r.category);
+              return (
+                <ListRow
+                  key={r.id}
+                  Icon={Icon}
+                  iconColor={r.kind === "sale" ? SEA : NAVY}
+                  iconBg={r.kind === "sale" ? "#E3F1E8" : "#EDF1EF"}
+                  title={r.kind === "sale" ? "Fish sale" : r.category || "Expense"}
+                  sub={fmtDate(r.date) + (r.note ? " · " + r.note : "")}
+                  amount={(r.kind === "sale" ? "+ " : "− ") + fmt(r.amount)}
+                  amountTone={r.kind === "sale" ? GOOD : INK}
+                  onClick={() => go(r.kind === "sale" ? "sales" : "expenses")}
+                  last={i === recent.length - 1}
+                />
+              );
+            })}
+          </Card>
+        )}
+
+        <div style={{ textAlign: "center", fontSize: 11.5, color: MUTED, padding: "6px 0 4px" }}>{savedText}</div>
+      </div>
     </div>
   );
 }
 
-/* ---------------- History ---------------- */
-function HistoryTabV2({ state, fin, openSale, openExpense, removeSale, removeExpense, toast }) {
+/* ---------------- Sales ---------------- */
+function SalesTab({ state, fin, openSale, removeSale, toast }) {
   const [del, setDel] = useState(null);
-
-  const fmtTime = (iso) => {
-    if (!iso) return "";
-    return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const grouped = useMemo(() => {
-    const s = state.sales.map((x) => ({ ...x, kind: "sale" }));
-    const e = state.expenses.map((x) => ({ ...x, kind: "expense" }));
-    const byDate = {};
-    [...s, ...e].forEach((item) => {
-      (byDate[item.date] = byDate[item.date] || []).push(item);
-    });
-    const dates = Object.keys(byDate).sort((a, b) => (a < b ? 1 : -1));
-    dates.forEach((d) => {
-      byDate[d].sort((a, b) => {
-        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tb - ta;
-      });
-    });
-    return { dates, byDate };
-  }, [state.sales, state.expenses]);
+  const sales = useMemo(
+    () => [...state.sales].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
+    [state.sales]
+  );
+  const best = sales.reduce((m, x) => Math.max(m, Number(x.amount) || 0), 0);
+  const avg = sales.length ? fin.grossSales / sales.length : 0;
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <Btn label={<><Plus size={20} /> Log sale</>} onClick={openSale} />
-        <Btn label={<><Minus size={20} /> Log expense</>} kind="ghost" onClick={openExpense} />
-      </div>
-
-      <Card>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1.2, marginBottom: 4 }}>
-          SEASON SO FAR
+      <PageHead
+        title="Sales"
+        sub={(state.season.name || "This season") + " · " + sales.length + (sales.length === 1 ? " landing" : " landings")}
+      />
+      <div style={{ padding: "0 14px" }}>
+        <div style={{ background: NAVY, borderRadius: 16, padding: 16 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.74)" }}>Total fish sales</div>
+          <div className="num" style={{ fontSize: 27, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+            {fmt(fin.grossSales)}
+          </div>
+          {sales.length > 0 ? (
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 5 }}>
+              Best landing <b className="num" style={{ color: "#fff" }}>{fmt(best)}</b> · average{" "}
+              <b className="num" style={{ color: "#fff" }}>{fmt(avg)}</b>
+            </div>
+          ) : null}
+          <div style={{ marginTop: 14 }}>
+            <Btn label={<><Plus size={18} /> Log sale</>} kind="onGreen" onClick={openSale} />
+          </div>
         </div>
-        <Row left="Total fish sales" right={fmt(fin.grossSales)} />
-        <Row left="Fixed expenses" right={"− " + fmt(fin.fixedTotal)} />
-        <Row left="Trip expenses" right={"− " + fmt(fin.varTotal)} />
-        <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-        {fin.positionsTotal > 0 && fin.beforeSplit && (
-          <Row left="Position pay (off the top)" right={"− " + fmt(fin.positionsTotal)} />
-        )}
-        <Row left="Net pot" right={fmt(fin.netPot)} strong />
-        <Row left="Pot to split" right={fmt(fin.potForSplit)} strong color={NAVY} />
-      </Card>
 
-
-      <SplitCard fin={fin} />
-
-      {fin.netPot < 0 && (
-        <Card style={{ borderColor: BAD }}>
-          <div style={{ color: BAD, fontWeight: 700, fontSize: 15 }}>
-            Expenses are bigger than sales right now. Shares are worth GH₵ 0 until the pot recovers.
-          </div>
-        </Card>
-      )}
-
-      <div style={{ fontSize: 15, fontWeight: 800, color: NAVY, margin: "16px 0 2px" }}>History</div>
-      <div style={{ fontSize: 13, color: "#8A94A3", marginBottom: 8 }}>Tap an entry to remove it.</div>
-
-      {grouped.dates.length === 0 && (
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: MIST, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Fish size={22} color={"#8A94A3"} />
+        <SectionHead text="All sales" />
+        {sales.length === 0 ? (
+          <Card pad={14}>
+            <div style={{ fontSize: 14, color: MUTED }}>
+              No sales recorded yet. Tap “Log sale” straight after a landing.
             </div>
-            <div style={{ color: "#5A6675", fontSize: 15 }}>
-              Nothing logged yet. Tap "Log sale" after you sell fish.
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {grouped.dates.map((d) => (
-        <div key={d} style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5A6675", letterSpacing: 1, marginBottom: 6 }}>
-            {fmtDate(d).toUpperCase()}
-          </div>
-          <Card pad={0} style={{ overflow: "hidden" }}>
-            {grouped.byDate[d].map((h, i) => {
-              const HIcon = h.kind === "sale" ? Fish : catIcon(h.category);
-              return (
-                <div
-                  key={h.id}
-                  onClick={() => setDel(h)}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "13px 16px",
-                    cursor: "pointer",
-                    borderBottom: i < grouped.byDate[d].length - 1 ? "1px solid " + LINE : "none",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 12,
-                        background: h.kind === "sale" ? "#E3F3EE" : MIST,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <HIcon size={20} color={h.kind === "sale" ? SEA : NAVY} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>
-                        {h.kind === "sale" ? "Fish sale" : h.category || "Expense"}
-                      </div>
-                      <div style={{ fontSize: 13, color: "#5A6675" }}>
-                        {fmtTime(h.createdAt)}
-                        {h.note ? " · " + h.note : ""}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: MONO,
-                      fontWeight: 800,
-                      fontSize: 15,
-                      color: h.kind === "sale" ? GOOD : BAD,
-                      fontVariantNumeric: "tabular-nums",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h.kind === "sale" ? "+" : "−"} {fmt(h.amount)}
-                  </div>
-                </div>
-              );
-            })}
           </Card>
-        </div>
-      ))}
+        ) : (
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {sales.map((s, i) => (
+              <ListRow
+                key={s.id}
+                Icon={Fish}
+                iconColor={SEA}
+                iconBg="#E3F1E8"
+                title={s.note ? s.note : "Fish sale"}
+                sub={fmtDate(s.date)}
+                amount={"+ " + fmt(s.amount)}
+                amountTone={GOOD}
+                onClick={() => setDel(s)}
+                last={i === sales.length - 1}
+              />
+            ))}
+          </Card>
+        )}
+        <div style={{ fontSize: 12, color: MUTED, padding: "2px 2px 8px" }}>Tap a sale to remove it.</div>
+      </div>
 
       {del && (
         <ConfirmRemove
-          title={(del.kind === "sale" ? "Fish sale" : del.category || "Expense") + " · " + fmt(del.amount)}
+          title={"Fish sale · " + fmt(del.amount)}
           lines={[fmtDate(del.date) + (del.note ? " · " + del.note : "")]}
           onClose={() => setDel(null)}
           onConfirm={() => {
-            if (del.kind === "sale") removeSale(del.id);
-            else removeExpense(del.id);
+            removeSale(del.id);
             setDel(null);
-            toast("Entry removed");
+            toast("Sale removed");
           }}
         />
       )}
@@ -2086,129 +2291,361 @@ function HistoryTabV2({ state, fin, openSale, openExpense, removeSale, removeExp
   );
 }
 
-/* -------- Weather (redesigned) -------- */
-function WeatherTabV2() {
-  const wx = useSea();
-  const verdict = seaVerdict(wx);
-  const vcol = verdict.col;
+/* ---------------- Expenses ---------------- */
+function ExpensesTab({ state, fin, openExpense, removeExpense, toast }) {
+  const [del, setDel] = useState(null);
+  const total = fin.fixedTotal + fin.varTotal;
+
+  const byCat = useMemo(() => {
+    const map = {};
+    state.expenses.forEach((e) => {
+      const c = e.category || "Other";
+      map[c] = (map[c] || 0) + (Number(e.amount) || 0);
+    });
+    return Object.keys(map)
+      .map((c) => ({ cat: c, total: map[c] }))
+      .sort((a, b) => b.total - a.total);
+  }, [state.expenses]);
+
+  const grouped = useMemo(() => {
+    const byDate = {};
+    state.expenses.forEach((e) => {
+      (byDate[e.date] = byDate[e.date] || []).push(e);
+    });
+    const dates = Object.keys(byDate).sort((a, b) => (a < b ? 1 : -1));
+    return { dates, byDate };
+  }, [state.expenses]);
+
   return (
     <div>
-      <Card style={{ borderLeft: "6px solid " + vcol }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: "#5A6675", letterSpacing: 1.4 }}>
-          ADINA, VOLTA REGION — NOW
+      <PageHead
+        title="Expenses"
+        sub={(state.season.name || "This season") + " · " + (state.expenses.length + state.season.fixed.length) + " entries"}
+      />
+      <div style={{ padding: "0 14px" }}>
+        <div style={{ background: NAVY, borderRadius: 16, padding: 16 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.74)" }}>Total spent this season</div>
+          <div className="num" style={{ fontSize: 27, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+            {fmt(total)}
+          </div>
+          <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.72)" }}>
+            <span>
+              Fixed costs <b className="num" style={{ color: "#fff" }}>{fmt(fin.fixedTotal)}</b>
+            </span>
+            <span>
+              Trip costs <b className="num" style={{ color: "#fff" }}>{fmt(fin.varTotal)}</b>
+            </span>
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Btn label={<><Minus size={18} /> Log expense</>} kind="onGreen" onClick={openExpense} />
+          </div>
         </div>
-        <div style={{ fontSize: 32, fontWeight: 900, color: vcol, margin: "6px 0" }}>{verdict.label}</div>
-        <div style={{ fontSize: 16, color: INK }}>{verdict.msg || "Checking the sea…"}</div>
-      </Card>
-      <Card pad={6}>
-        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Wind size={18} color={NAVY} /> Wind</span>} right={wx.status === "loading" ? "…" : wx.wind + " km/h"} />
-        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Waves size={18} color={NAVY} /> Waves</span>} right={wx.status === "loading" ? "…" : wx.wave + " m"} />
-        <Row left={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><CloudRain size={18} color={NAVY} /> Rain</span>} right={wx.status === "loading" ? "…" : wx.rain + " mm"} />
-      </Card>
-      <div style={{ background: "#fff", border: "1px solid " + LINE, borderRadius: 18, padding: "14px 16px", boxShadow: "0 1px 2px rgba(12,27,42,0.05), 0 6px 18px rgba(12,27,42,0.05)", marginBottom: 12 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1.2, marginBottom: 8 }}>GO / NO-GO GUIDE</div>
-        {[
-          { Icon: Check, label: "Safe to sail", tone: GOOD, cond: "Waves under 1.2 m · wind under 20 km/h" },
-          { Icon: Info, label: "Caution — go carefully", tone: WARN, cond: "Waves 1.2–2 m · wind 20–30 km/h · heavy rain" },
-          { Icon: Trash2, label: "Stay ashore", tone: BAD, cond: "Waves over 2 m · wind over 30 km/h" },
-        ].map((g) => (
-          <div key={g.label} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "7px 0" }}>
-            <div style={{ width: 30, height: 30, borderRadius: 10, background: g.tone + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <g.Icon size={16} color={g.tone} strokeWidth={2.6} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 14.5, color: g.tone }}>{g.label}</div>
-              <div style={{ fontSize: 13, color: "#5A6675" }}>{g.cond}</div>
-            </div>
+
+        {state.season.fixed.length > 0 ? (
+          <div>
+            <SectionHead text="Fixed season costs" />
+            <Card pad={14}>
+              {state.season.fixed.map((f) => (
+                <Row key={f.id} left={f.name} right={fmt(f.amount)} />
+              ))}
+              <div style={{ borderTop: "1px solid " + LINE, margin: "6px 0 2px" }} />
+              <Row left="Total fixed" right={fmt(fin.fixedTotal)} strong />
+            </Card>
           </div>
-        ))}
+        ) : null}
+
+        {byCat.length > 0 ? (
+          <div>
+            <SectionHead text="Where the money went" />
+            <Card pad={0} style={{ overflow: "hidden" }}>
+              {byCat.map((c, i) => {
+                const Icon = catIcon(c.cat);
+                return (
+                  <ListRow
+                    key={c.cat}
+                    Icon={Icon}
+                    title={c.cat}
+                    sub={total > 0 ? Math.round((c.total / total) * 100) + "% of all spending" : ""}
+                    amount={fmt(c.total)}
+                    last={i === byCat.length - 1}
+                  />
+                );
+              })}
+            </Card>
+          </div>
+        ) : null}
+
+        <SectionHead text="Every expense" />
+        {state.expenses.length === 0 ? (
+          <Card pad={14}>
+            <div style={{ fontSize: 14, color: MUTED }}>
+              Nothing recorded yet. Tap “Log expense” when you buy premix, food, ice or repairs.
+            </div>
+          </Card>
+        ) : (
+          grouped.dates.map((d) => (
+            <div key={d} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1, color: MUTED, margin: "0 2px 6px" }}>
+                {fmtDate(d).toUpperCase()}
+              </div>
+              <Card pad={0} style={{ overflow: "hidden", marginBottom: 0 }}>
+                {grouped.byDate[d].map((e, i) => {
+                  const Icon = catIcon(e.category);
+                  return (
+                    <ListRow
+                      key={e.id}
+                      Icon={Icon}
+                      title={e.category || "Expense"}
+                      sub={e.note ? e.note : fmtDate(e.date)}
+                      amount={"− " + fmt(e.amount)}
+                      amountTone={BAD}
+                      onClick={() => setDel(e)}
+                      last={i === grouped.byDate[d].length - 1}
+                    />
+                  );
+                })}
+              </Card>
+            </div>
+          ))
+        )}
+        {state.expenses.length > 0 ? (
+          <div style={{ fontSize: 12, color: MUTED, padding: "2px 2px 8px" }}>Tap an expense to remove it.</div>
+        ) : null}
       </div>
-      {wx.status === "demo" && (
-        <Card style={{ background: MIST, border: "none" }}>
-          <div style={{ fontSize: 14, color: "#5A6675" }}>
-            <b>Offline.</b> Showing saved demo conditions — the app keeps working without network. Live
-            data returns when connection is back.
-          </div>
-        </Card>
+
+      {del && (
+        <ConfirmRemove
+          title={(del.category || "Expense") + " · " + fmt(del.amount)}
+          lines={[fmtDate(del.date) + (del.note ? " · " + del.note : "")]}
+          onClose={() => setDel(null)}
+          onConfirm={() => {
+            removeExpense(del.id);
+            setDel(null);
+            toast("Expense removed");
+          }}
+        />
       )}
     </div>
   );
 }
 
-/* ---------------- More (redesigned) ---------------- */
-function MoreTabV2({ state, fin, onCloseSeason, onReset, bio }) {
-  const [confirm, setConfirm] = useState(false);
+/* -------- Weather: can we go to sea today? -------- */
+function WeatherTabV2({ onBack }) {
+  const wx = useSea();
+  const verdict = seaVerdict(wx);
+  const vcol = verdict.col;
+  const loading = wx.status === "loading";
+  const tiles = [
+    { Icon: Wind, label: "Wind", value: loading ? "…" : wx.wind + " km/h" },
+    { Icon: Waves, label: "Waves", value: loading ? "…" : wx.wave + " m" },
+    { Icon: CloudRain, label: "Rain", value: loading ? "…" : wx.rain + " mm" },
+  ];
   return (
     <div>
-      <Card pad={14}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{state.company.name}</div>
-        <div style={{ fontSize: 13.5, color: "#5A6675", marginTop: 1 }}>Owner: {state.company.owner || "\u2014"}</div>
-        <div style={{ borderTop: "1px solid " + LINE, margin: "10px 0" }} />
-        <Row left="Season" right={state.season.name} />
-        <Row left="Started" right={fmtDate(state.season.start)} />
-        <Row left="Crew" right={state.workers.length + " workers · " + fin.totalUnits + " units"} />
-        <Row left="Expense types" right={String(state.expenseCats.length)} />
-      </Card>
+      <PageHead
+        title="Sea conditions"
+        sub="Adina, Volta Region · right now"
+        right={
+          onBack ? (
+            <button
+              onClick={onBack}
+              style={{
+                border: "1px solid " + LINE,
+                background: "#fff",
+                color: NAVY,
+                borderRadius: 10,
+                padding: "8px 12px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              Home
+            </button>
+          ) : null
+        }
+      />
+      <div style={{ padding: "0 14px" }}>
+        <div style={{ background: vcol, borderRadius: 16, padding: "16px 16px 18px" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.4, color: "rgba(255,255,255,0.78)" }}>
+            GO / NO-GO TODAY
+          </div>
+          <div style={{ fontSize: 27, fontWeight: 800, color: "#fff", marginTop: 4 }}>{verdict.label}</div>
+          <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.94)", marginTop: 4, lineHeight: 1.4 }}>
+            {verdict.msg || "Checking the sea…"}
+          </div>
+        </div>
 
-      {state.positions.length > 0 && (
-        <Card>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1, marginBottom: 4 }}>POSITIONS</div>
-          {state.positions.map((p) => {
-            const holders = state.workers.filter((w) => w.positionId === p.id).map((w) => w.name);
-            return (
-              <Row
-                key={p.id}
-                left={p.name + (holders.length ? " · " + holders.join(", ") : " · unassigned")}
-                right={fmt(p.pay) + " / season"}
-              />
-            );
-          })}
-        </Card>
-      )}
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+          {tiles.map((t) => (
+            <div
+              key={t.label}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                background: "#fff",
+                border: "1px solid " + LINE,
+                borderRadius: 16,
+                padding: "12px 12px",
+              }}
+            >
+              <t.Icon size={17} color={MUTED} />
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: MUTED, marginTop: 6 }}>{t.label}</div>
+              <div className="num" style={{ fontSize: 17, fontWeight: 800, color: INK, marginTop: 1 }}>{t.value}</div>
+            </div>
+          ))}
+        </div>
 
-      {bio && (
-        <Card>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1, marginBottom: 4 }}>UNLOCK</div>
-          <Row left="Face / fingerprint unlock" right={bio.enrolled ? "On" : "Off"} />
-          {bio.enrolled ? (
-            <div>
-              <div style={{ fontSize: 13.5, color: "#5A6675", marginBottom: 8 }}>
-                Your phone unlocks VaultStack with Face ID, Touch ID or fingerprint. Your PIN keeps working too.
+        <SectionHead text="What the numbers mean" />
+        <Card pad={14}>
+          {[
+            { tone: GOOD, label: "Safe to sail", cond: "Waves under 1.2 m · wind under 20 km/h" },
+            { tone: WARN, label: "Go carefully", cond: "Waves 1.2–2 m · wind 20–30 km/h · heavy rain" },
+            { tone: BAD, label: "Stay ashore", cond: "Waves over 2 m · wind over 30 km/h" },
+          ].map((g, i, arr) => (
+            <div
+              key={g.label}
+              style={{
+                display: "flex",
+                gap: 10,
+                padding: "9px 0",
+                borderBottom: i === arr.length - 1 ? "none" : "1px solid " + LINE,
+              }}
+            >
+              <span style={{ width: 10, height: 10, borderRadius: 999, background: g.tone, marginTop: 5, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: INK }}>{g.label}</div>
+                <div style={{ fontSize: 12.5, color: MUTED }}>{g.cond}</div>
               </div>
-              <Btn label="Turn off" kind="danger" small onClick={bio.onDisable} />
             </div>
-          ) : bio.supported ? (
-            <div>
-              <div style={{ fontSize: 13.5, color: "#5A6675", marginBottom: 8 }}>
-                Unlock VaultStack with your face or fingerprint instead of typing your PIN. Your phone
-                confirms it is you — fingerprint data never leaves the device.
-              </div>
-              <Btn label={bio.busy ? "Waiting…" : "Turn on"} small disabled={bio.busy} onClick={bio.onEnable} />
-            </div>
-          ) : (
-            <div style={{ fontSize: 13.5, color: "#5A6675" }}>
-              Not available on this device or browser. Your PIN still protects the app.
-            </div>
-          )}
-        </Card>
-      )}
-
-      {state.pastSeasons.length > 0 && (
-        <Card>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: NAVY, letterSpacing: 1, marginBottom: 4 }}>PAST SEASONS</div>
-          {state.pastSeasons.map((p, i) => (
-            <Row key={i} left={p.name} right={"Net pot " + fmt(p.netPot)} />
           ))}
         </Card>
-      )}
-      <Btn label="Close this season" kind="danger" onClick={() => setConfirm(true)} />
-      <div style={{ height: 10 }} />
-      <Btn label="Erase all data and start over" kind="quiet" onClick={onReset} />
+
+        {wx.status === "demo" ? (
+          <Card pad={14} style={{ background: SOFT, border: "none" }}>
+            <div style={{ fontSize: 13.5, color: INK, lineHeight: 1.45 }}>
+              <b>Offline.</b> These are the last saved conditions. The app keeps working without
+              network — live readings return when the phone is back online.
+            </div>
+          </Card>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- More: company, access, season ---------------- */
+function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
+  const [confirm, setConfirm] = useState(false);
+  const [resetAsk, setResetAsk] = useState(false);
+
+  const bioSub = !bio
+    ? ""
+    : bio.enrolled
+    ? "On — your phone confirms it is you"
+    : bio.supported
+    ? "Turn on to unlock without typing the PIN"
+    : "Not available on this device or browser";
+
+  const bioAction = !bio || !bio.supported ? null : bio.enrolled ? bio.onDisable : bio.onEnable;
+
+  return (
+    <div>
+      <PageHead title="More" sub={state.company.name || "Company settings"} />
+      <div style={{ padding: "0 14px" }}>
+        <Card pad={14}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: INK }}>{state.company.name}</div>
+          <div className="truncate" style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>
+            {(state.company.owner || "Owner not set") + (state.company.phone ? " · " + state.company.phone : "")}
+          </div>
+          <div style={{ borderTop: "1px solid " + LINE, margin: "10px 0 4px" }} />
+          <Row left="Season" right={state.season.name || "\u2014"} />
+          <Row left="Started" right={fmtDate(state.season.start)} />
+          <Row left="Crew" right={state.workers.length + " workers · " + fin.totalUnits + " units"} />
+          <Row left="Each unit is worth" right={fmt(fin.vpu)} />
+        </Card>
+
+        {state.positions.length > 0 ? (
+          <div>
+            <SectionHead text="Positions" />
+            <Card pad={0} style={{ overflow: "hidden" }}>
+              {state.positions.map((p, i) => {
+                const holders = state.workers.filter((w) => w.positionId === p.id).map((w) => w.name);
+                return (
+                  <ListRow
+                    key={p.id}
+                    Icon={Star}
+                    iconColor={GOLD}
+                    title={p.name}
+                    sub={holders.length ? holders.join(", ") : "Not assigned to anyone"}
+                    amount={fmt(p.pay)}
+                    last={i === state.positions.length - 1}
+                  />
+                );
+              })}
+            </Card>
+          </div>
+        ) : null}
+
+        <SectionHead text="Access" />
+        <Card pad={0} style={{ overflow: "hidden" }}>
+          {onLock ? (
+            <ListRow Icon={Lock} title="Lock VaultStack now" sub="Ask for the PIN again" onClick={onLock} />
+          ) : null}
+          <ListRow
+            Icon={Star}
+            iconColor={NAVY}
+            title="Face / fingerprint unlock"
+            sub={bioSub}
+            amount={bio && bio.enrolled ? (bio.busy ? "…" : "On") : bio && bio.supported ? (bio.busy ? "…" : "Off") : "—"}
+            amountTone={bio && bio.enrolled ? GOOD : MUTED}
+            onClick={bioAction || undefined}
+            last
+          />
+        </Card>
+        {bio && !bio.enrolled && bio.supported ? (
+          <div style={{ fontSize: 12, color: MUTED, padding: "6px 2px 0", lineHeight: 1.45 }}>
+            Your phone’s Face ID, Touch ID or fingerprint unlocks the app. No fingerprint data
+            touches VaultStack, and your PIN still works if a scan fails.
+          </div>
+        ) : null}
+
+        <SectionHead text="Sea" />
+        <Card pad={0} style={{ overflow: "hidden" }}>
+          <ListRow Icon={Waves} title="Sea conditions at Adina" sub="Wind, waves and rain" onClick={() => go("weather")} last />
+        </Card>
+
+        {state.pastSeasons.length > 0 ? (
+          <div>
+            <SectionHead text="Past seasons" />
+            <Card pad={0} style={{ overflow: "hidden" }}>
+              {state.pastSeasons.map((p, i) => (
+                <ListRow
+                  key={i}
+                  Icon={Fish}
+                  title={p.name}
+                  sub={p.settlements ? p.settlements.length + " workers settled" : ""}
+                  amount={fmt(p.netPot)}
+                  last={i === state.pastSeasons.length - 1}
+                />
+              ))}
+            </Card>
+          </div>
+        ) : null}
+
+        <SectionHead text="Season" />
+        <Btn label="Close this season" kind="danger" onClick={() => setConfirm(true)} />
+        <div style={{ height: 10 }} />
+        <Btn label="Erase all data and start over" kind="quiet" onClick={() => setResetAsk(true)} />
+        <div style={{ height: 14 }} />
+      </div>
 
       {confirm && (
         <Modal title="Close the season?" onClose={() => setConfirm(false)}>
-          <div style={{ fontSize: 15, color: "#3D4754", marginBottom: 12 }}>
-            Final payouts will be locked. Any worker debt carries to the next season automatically.
+          <div style={{ fontSize: 14.5, color: MUTED, marginBottom: 12, lineHeight: 1.45 }}>
+            Final payouts are locked and saved. Any worker debt carries to the next season
+            automatically.
           </div>
           <Card pad={12} style={{ background: MIST, border: "none" }}>
             {state.workers.map((w) => {
@@ -2222,11 +2659,11 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, bio }) {
                 />
               );
             })}
-            <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
-            <Row left="Pot to split" right={fmt(fin.potForSplit)} strong />
+            <div style={{ borderTop: "1px solid " + LINE, margin: "6px 0 2px" }} />
+            <Row left="Pot shared by units" right={fmt(fin.potForSplit)} strong />
           </Card>
           <Btn
-            label="Yes, close season"
+            label="Yes, close the season"
             onClick={() => {
               setConfirm(false);
               onCloseSeason();
@@ -2234,12 +2671,26 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, bio }) {
           />
         </Modal>
       )}
+
+      {resetAsk && (
+        <Modal title="Erase everything?" onClose={() => setResetAsk(false)}>
+          <div style={{ fontSize: 14.5, color: MUTED, marginBottom: 12, lineHeight: 1.45 }}>
+            This deletes the company, crew, sales, expenses and past seasons saved on this phone.
+            It cannot be undone.
+          </div>
+          <Btn
+            label="Yes, erase all data"
+            kind="dangerSolid"
+            onClick={() => {
+              setResetAsk(false);
+              onReset();
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
-
-/* ---------------- App shell (redesigned) ---------------- */
-
 
 /* ---------------- Workers (crew) ---------------- */
 function WorkersTabV2({
@@ -2296,77 +2747,127 @@ function WorkersTabV2({
 
   return (
     <div>
-      <Card pad={12}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 800, color: INK }}>Crew · {state.workers.length} workers</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#5A6675", whiteSpace: "nowrap" }}>{fin.totalUnits} units</div>
+      <PageHead
+        title="Workers"
+        sub={state.workers.length + " in the crew · " + fin.totalUnits + " share units"}
+      />
+      <div style={{ padding: "0 14px" }}>
+        <div style={{ background: NAVY, borderRadius: 16, padding: 16 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.74)" }}>
+            To pay out if the season closed today
+          </div>
+          <div className="num" style={{ fontSize: 27, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+            {fmt(crewTotal)}
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 5 }}>
+            Owing to the boat <b className="num" style={{ color: "#fff" }}>{fmt(crewDebt)}</b> · each unit{" "}
+            {fmt(fin.vpu)}
+          </div>
         </div>
-        <Row left="To pay out" right={fmt(crewTotal)} strong color={SEA} />
-        <Row left="Owing to the boat" right={fmt(crewDebt)} strong color={crewDebt > 0 ? BAD : INK} />
-      </Card>
 
-      {state.workers.map((wk) => {
-        const k = workerNumbers(state, wk, fin);
-        const pn = wk.positionId
-          ? (state.positions.find((p) => p.id === wk.positionId) || {}).name
-          : null;
-        const tone = k.payout < 0 ? "bad" : k.loansTotal + k.carried > k.grossShare * 0.7 ? "warn" : "good";
-        return (
-          <Card
-            key={wk.id}
-            pad={14}
-            onClick={() => { setOpenId(wk.id); setSub(null); setCopied(false); }}
-            style={{ cursor: "pointer" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <Avatar name={wk.name} size={44} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontWeight: 800, fontSize: 16 }}>{wk.name}</span>
-                  {pn && <Star size={14} color={GOLD} fill={GOLD} />}
-                </div>
-                <div style={{ fontSize: 12.5, color: "#5A6675", marginTop: 1 }}>
-                  {pn ? pn + " · " : ""}{wk.units} units
-                </div>
-              </div>
-              <Pill
-                text={k.payout < 0 ? "In debt" : tone === "warn" ? "Borrowing high" : "Healthy"}
-                tone={tone}
-              />
-            </div>
-            <div style={{ borderTop: "1px solid " + LINE, paddingTop: 8 }}>
-              <Row left="Share so far" right={fmt(k.grossShare)} />
-              <Row left="Will take home" right={fmt(k.payout)} strong color={k.payout < 0 ? BAD : SEA} />
-              <Row left="Can still borrow" right={fmt(k.borrowLimit)} />
-            </div>
+        <SectionHead text="Crew list" />
+        {state.workers.length === 0 ? (
+          <Card pad={14}>
+            <div style={{ fontSize: 14, color: MUTED }}>No workers on this season yet.</div>
           </Card>
-        );
-      })}
+        ) : (
+          <Card pad={0} style={{ overflow: "hidden" }}>
+            {state.workers.map((wk, i) => {
+              const k = workerNumbers(state, wk, fin);
+              const pn = wk.positionId
+                ? (state.positions.find((p) => p.id === wk.positionId) || {}).name
+                : null;
+              const heavy = k.loansTotal + k.carried > k.grossShare * 0.7;
+              return (
+                <div
+                  key={wk.id}
+                  className="vs-press"
+                  onClick={() => {
+                    setOpenId(wk.id);
+                    setSub(null);
+                    setCopied(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 14px",
+                    cursor: "pointer",
+                    borderBottom: i === state.workers.length - 1 ? "none" : "1px solid " + LINE,
+                  }}
+                >
+                  <Avatar name={wk.name} size={40} />
+                  <div className="truncate" style={{ flex: 1, minWidth: 0 }}>
+                    <div className="truncate" style={{ fontWeight: 700, fontSize: 15, color: INK }}>
+                      {wk.name}
+                    </div>
+                    <div className="truncate" style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>
+                      {(pn ? pn + " · " : "") + wk.units + " units"}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div
+                      className="num"
+                      style={{ fontSize: 15, fontWeight: 700, color: k.payout < 0 ? BAD : INK }}
+                    >
+                      {fmt(k.payout)}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        marginTop: 2,
+                        color: k.payout < 0 ? BAD : heavy ? WARN : GOOD,
+                      }}
+                    >
+                      {k.payout < 0 ? "In debt" : heavy ? "Borrowed a lot" : "Take home"}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+        )}
+        <div style={{ fontSize: 12, color: MUTED, padding: "2px 2px 10px" }}>
+          Tap a worker for the payout breakdown, loans and WhatsApp statement.
+        </div>
+      </div>
 
       {w && sub === null && (
         <Modal title={w.name + (posName ? " · " + posName : "")} onClose={() => setOpenId(null)}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-            <Avatar name={w.name} size={52} />
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 18 }}>{w.name}</div>
-              <div style={{ fontSize: 13.5, color: "#5A6675" }}>
-                {posName ? posName + " · " : ""}{w.units} of {fin.totalUnits} units
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <Avatar name={w.name} size={46} />
+            <div className="truncate" style={{ minWidth: 0 }}>
+              <div className="truncate" style={{ fontWeight: 800, fontSize: 17, color: INK }}>{w.name}</div>
+              <div className="truncate" style={{ fontSize: 13, color: MUTED }}>
+                {(posName ? posName + " · " : "") + w.units + " of " + fin.totalUnits + " units"}
               </div>
             </div>
           </div>
+
+          <div style={{ background: NAVY, borderRadius: 16, padding: 14, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.74)" }}>Will take home</div>
+            <div className="num" style={{ fontSize: 25, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+              {fmt(n.payout)}
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 4 }}>
+              Can still borrow {fmt(n.borrowLimit)}
+            </div>
+          </div>
+
           <Card pad={14} style={{ background: MIST, border: "none" }}>
             <Row left="Value per unit" right={fmt(fin.vpu)} />
-            <Row left={"Share from units (" + w.units + " × " + fmt(fin.vpu) + ")"} right={fmt(n.unitShare)} />
-            {n.posPay > 0 && <Row left={"Position pay (" + posName + ")"} right={"+ " + fmt(n.posPay)} />}
+            <Row left={w.units + " units × " + fmt(fin.vpu)} right={fmt(n.unitShare)} />
+            {n.posPay > 0 ? <Row left={"Position pay (" + posName + ")"} right={"+ " + fmt(n.posPay)} /> : null}
             <Row left="Bonuses" right={"+ " + fmt(n.bonusTotal)} />
-            <Row left="Deductions" right={"− " + fmt(n.dedTotal)} />
-            <Row left="Loans this season" right={"− " + fmt(n.loansTotal)} />
-            <Row left="Payments received" right={"− " + fmt(n.paymentsTotal)} />
-            <Row left="Debt from last season" right={"− " + fmt(n.carried)} />
-            <div style={{ borderTop: "1px solid " + LINE, margin: "4px 0" }} />
+            <Row left="Deductions" right={"\u2212 " + fmt(n.dedTotal)} />
+            <Row left="Loans this season" right={"\u2212 " + fmt(n.loansTotal)} />
+            <Row left="Payments received" right={"\u2212 " + fmt(n.paymentsTotal)} />
+            <Row left="Debt from last season" right={"\u2212 " + fmt(n.carried)} />
+            <div style={{ borderTop: "1px solid " + LINE, margin: "6px 0 2px" }} />
             <Row left="Payout so far" right={fmt(n.payout)} strong color={n.payout < 0 ? BAD : SEA} />
-            <Row left="Can still borrow" right={fmt(n.borrowLimit)} />
           </Card>
+
           <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
             <Btn label="Give loan" kind="ghost" onClick={() => setSub("loan")} />
             <Btn label="Record payment" kind="ghost" onClick={() => setSub("pay-type")} />
@@ -2387,7 +2888,7 @@ function WorkersTabV2({
           {histRows.length > 0 && (
             <div style={{ marginTop: 18 }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: NAVY }}>History</div>
-              <div style={{ fontSize: 13, color: "#5A6675", marginBottom: 4 }}>Tap an entry to remove it.</div>
+              <div style={{ fontSize: 13, color: MUTED, marginBottom: 4 }}>Tap an entry to remove it.</div>
               {histRows.map((h) => (
                 <div
                   key={h.id}
@@ -2400,7 +2901,7 @@ function WorkersTabV2({
                     cursor: "pointer",
                   }}
                 >
-                  <span style={{ fontSize: 15.5, color: "#46505C" }}>
+                  <span style={{ fontSize: 15.5, color: MUTED }}>
                     {histLabel(h)} · {fmtDate(h.date)}
                   </span>
                   <span
@@ -2441,7 +2942,7 @@ function WorkersTabV2({
 
       {w && sub === "pay-type" && (
         <Modal title={"Payment to " + w.name} onClose={() => setSub(null)}>
-          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>What did {w.name} receive?</div>
+          <div style={{ fontSize: 15, color: MUTED, marginBottom: 14 }}>What did {w.name} receive?</div>
           <Btn label={<><Banknote size={20} /> Cash</>} onClick={() => { setPayDesc("Cash"); setSub("pay-amt"); }} />
           <div style={{ height: 10 }} />
           <Btn label={<><Package size={20} /> Goods</>} kind="ghost" onClick={() => { setGoodsOther(""); setSub("pay-goods"); }} />
@@ -2499,7 +3000,7 @@ function WorkersTabV2({
 
       {w && sub === "adj-reason" && (
         <Modal title={adjKind === "bonus" ? "Bonus for " + w.name : "Deduction for " + w.name} onClose={() => setSub(null)}>
-          <div style={{ fontSize: 15, color: "#5A6675", marginBottom: 14 }}>
+          <div style={{ fontSize: 15, color: MUTED, marginBottom: 14 }}>
             {adjKind === "bonus" ? "Why the bonus?" : "Why the deduction?"}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
@@ -2592,7 +3093,6 @@ function WorkersTabV2({
   );
 }
 
-
 /* ---------------- KeypadSheet: MoMo-style amount entry ---------------- */
 function KeypadSheet({
   title,
@@ -2633,33 +3133,32 @@ function KeypadSheet({
             display: "flex",
             alignItems: "center",
             gap: 8,
-            fontSize: 14.5,
-            color: "#5A6675",
+            fontSize: 13.5,
+            color: MUTED,
             marginBottom: 10,
           }}
         >
-          {HeaderIcon && <HeaderIcon size={18} color={NAVY} />}
-          <span>{subtitle}</span>
+          {HeaderIcon && <HeaderIcon size={17} color={NAVY} />}
+          <span className="truncate">{subtitle}</span>
         </div>
       )}
 
       <div
         style={{
-          background: MIST,
+          background: SOFT,
           borderRadius: 16,
-          padding: "18px 16px",
+          padding: "16px 16px 12px",
           textAlign: "center",
           marginBottom: 12,
         }}
       >
         <div
+          className="num"
           style={{
-            fontFamily: '"JetBrains Mono", ui-monospace, Menlo, monospace',
-            fontSize: 36,
+            fontSize: 33,
             fontWeight: 800,
             color: over ? BAD : NAVY,
-            fontVariantNumeric: "tabular-nums",
-            letterSpacing: "-0.02em",
+            lineHeight: 1.15,
           }}
         >
           GH₵ {val === "" ? "0" : val}
@@ -2669,18 +3168,19 @@ function KeypadSheet({
           style={{
             border: "none",
             background: "none",
-            color: "#5A6675",
-            fontSize: 13.5,
+            color: MUTED,
+            fontSize: 13,
             fontWeight: 700,
             textDecoration: "underline",
             cursor: "pointer",
-            marginTop: 4,
+            marginTop: 6,
+            padding: 0,
           }}
         >
           {date === todayISO() ? "Today" : fmtDate(date)} · change
         </button>
         {editDate && (
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 10 }}>
             <input
               type="date"
               value={date}
@@ -2688,9 +3188,11 @@ function KeypadSheet({
               style={{
                 padding: "10px 12px",
                 fontSize: 16,
-                border: "2px solid " + LINE,
-                borderRadius: 10,
+                border: "1px solid " + LINE,
+                borderRadius: 12,
                 fontFamily: baseFont,
+                background: "#fff",
+                color: INK,
               }}
             />
           </div>
@@ -2699,39 +3201,36 @@ function KeypadSheet({
 
       {quick.length > 0 && (
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          {quick.map((q) => (
-            <button
-              key={q}
-              onClick={() => setVal(String(q))}
-              style={{
-                flex: 1,
-                padding: "10px 0",
-                borderRadius: 12,
-                border: "2px solid " + (val === String(q) ? NAVY : LINE),
-                background: val === String(q) ? "#E8EEF7" : "#fff",
-                color: NAVY,
-                fontWeight: 800,
-                fontSize: 15,
-                cursor: "pointer",
-              }}
-            >
-              {q}
-            </button>
-          ))}
+          {quick.map((q) => {
+            const on = val === String(q);
+            return (
+              <button
+                key={q}
+                className="vs-press"
+                onClick={() => setVal(String(q))}
+                style={{
+                  flex: 1,
+                  padding: "11px 0",
+                  borderRadius: 12,
+                  border: "1px solid " + (on ? NAVY : LINE),
+                  background: on ? SOFT : "#fff",
+                  color: NAVY,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: "pointer",
+                }}
+              >
+                {q}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 10,
-          marginBottom: 12,
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
         {keys.map((k, i) => (
           <Key key={i} onClick={() => press(k)}>
-            {k === "del" ? <Delete size={22} /> : k}
+            {k === "del" ? <Delete size={21} /> : k}
           </Key>
         ))}
       </div>
@@ -2739,9 +3238,9 @@ function KeypadSheet({
       {maxAmount != null && (
         <div
           style={{
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: 700,
-            color: over ? BAD : "#5A6675",
+            color: over ? BAD : MUTED,
             marginBottom: 10,
             textAlign: "center",
           }}
@@ -2760,21 +3259,22 @@ function KeypadSheet({
 }
 
 /* ---------------- confirm-remove sheet ---------------- */
+/* ---------------- confirm-remove sheet ---------------- */
 function ConfirmRemove({ lines, title, onConfirm, onClose }) {
   return (
     <Modal title="Remove this entry?" onClose={onClose}>
       <Card pad={14} style={{ background: MIST, border: "none" }}>
-        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{title}</div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: INK, marginBottom: 4 }}>{title}</div>
         {lines.map((l, i) => (
-          <div key={i} style={{ fontSize: 14.5, color: "#4A5568" }}>
+          <div key={i} style={{ fontSize: 13.5, color: MUTED }}>
             {l}
           </div>
         ))}
       </Card>
-      <div style={{ fontSize: 14.5, color: "#5A6675", marginBottom: 12 }}>
-        This cannot be undone. All totals will update.
+      <div style={{ fontSize: 14, color: MUTED, marginBottom: 12, lineHeight: 1.45 }}>
+        This cannot be undone. All the season totals will update.
       </div>
-      <Btn label={<><Trash2 size={20} /> Remove entry</>} kind="dangerSolid" onClick={onConfirm} />
+      <Btn label={<><Trash2 size={19} /> Remove entry</>} kind="dangerSolid" onClick={onConfirm} />
     </Modal>
   );
 }
