@@ -11,24 +11,24 @@
 *{box-sizing:border-box}
 :root{
   color-scheme: light;
-  /* VaultStack palette — deep marine green, one lime accent, warm neutrals */
-  --green:#0B3B2E;
-  --green-deep:#08281F;
-  --green-soft:#E7EFEA;
-  --lime:#C6F04E;
-  --ink:#0E1B15;
-  --muted:#5D6B65;
-  --mist:#F2F5F3;
-  --line:#DEE5E0;
+  /* VaultStack palette — deep sea blue, one bright sea-cyan accent, cool neutrals */
+  --brand:#0A3D62;
+  --brand-deep:#062639;
+  --brand-soft:#E4EEF6;
+  --accent:#7BE0F0;
+  --ink:#0C1A24;
+  --muted:#5C6B77;
+  --mist:#F2F6F9;
+  --line:#D9E2EA;
   --good:#177A4B;
   --warn:#8F5B00;
   --bad:#B3382A;
-  --sea:#0F7A5E;
+  --sea:#0E6E9E;
   --gold:#A9791D;
 }
 html,body{height:100%;margin:0}
 body{
-  background:#E6EBE8;
+  background:#E7EDF2;
   color:var(--ink);
   font-family:"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
@@ -62,9 +62,9 @@ body{
     height:calc(100% - 48px);
     max-height:880px;
     margin:auto;
-    border:1px solid #D4DDD7;
+    border:1px solid #D3DDE6;
     border-radius:22px;
-    box-shadow:0 22px 60px rgba(8,40,30,0.16);
+    box-shadow:0 22px 60px rgba(6,32,52,0.16);
   }
   .vs-scroll{padding-bottom:16px}
 }
@@ -72,7 +72,7 @@ input,button,select,textarea{font-family:inherit}
 button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 input{-webkit-appearance:none;appearance:none}
 input[type=date]{min-width:0}
-::selection{background:#D9E9CE}
+::selection{background:#CFE6F3}
 /* tabular money columns and safe truncation */
 .num{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -133,21 +133,21 @@ function Info(p){return <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x
    position pay taken off the top, remainder shared by share units.
    ============================================================ */
 
-/* Palette: deep marine green (brand), one lime accent, quiet neutrals.
+/* Palette: deep sea blue (brand), one sea-cyan accent, quiet cool neutrals.
    NAVY/DEEP keep their old names so every existing rule follows the theme. */
-const NAVY = "#0B3B2E";       /* brand green — headers, primary buttons */
-const DEEP = "#08281F";       /* darkest green — bars, pressed states */
-const INK = "#0E1B15";        /* body text */
-const MUTED = "#5D6B65";      /* secondary text */
-const MIST = "#F2F5F3";       /* page background */
-const LINE = "#DEE5E0";       /* hairlines + card borders */
-const SOFT = "#E7EFEA";       /* soft green tint */
+const NAVY = "#0A3D62";       /* brand sea blue — headers, primary buttons */
+const DEEP = "#062639";       /* darkest blue — bars, pressed states */
+const INK = "#0C1A24";        /* body text */
+const MUTED = "#5C6B77";      /* secondary text */
+const MIST = "#F2F6F9";       /* page background */
+const LINE = "#D9E2EA";       /* hairlines + card borders */
+const SOFT = "#E4EEF6";       /* soft blue tint */
 const GOOD = "#177A4B";
 const WARN = "#8F5B00";
 const BAD = "#B3382A";
-const SEA = "#0F7A5E";
+const SEA = "#0E6E9E";
 const GOLD = "#A9791D";
-const LIME = "#C6F04E";       /* the single accent — only on green or as a fill */
+const LIME = "#7BE0F0";       /* the single accent — over deep blue, or as a fill */
 const baseFont =
   '"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 const STORE_KEY = "vaultstack:app:v2"; /* bumped: new shape */
@@ -515,7 +515,7 @@ function Btn2({ label, onClick, kind = "primary", full = true, small = false, di
     primary: { background: NAVY, color: "#fff" },
     accent: { background: LIME, color: NAVY },
     ghost: { background: "#fff", color: NAVY, borderColor: LINE },
-    quiet: { background: "#E9EEEB", color: INK },
+    quiet: { background: "#E8EEF4", color: INK },
     danger: { background: "#fff", color: BAD, borderColor: "#E8CDC8" },
     dangerSolid: { background: BAD, color: "#fff" },
     onGreen: { background: LIME, color: NAVY },
@@ -612,7 +612,7 @@ function Modal2({ title, onClose, children }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(8,30,22,0.46)",
+        background: "rgba(6,28,46,0.48)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
@@ -634,7 +634,7 @@ function Modal2({ title, onClose, children }) {
           flexDirection: "column",
         }}
       >
-        <div style={{ width: 36, height: 4, borderRadius: 99, background: "#D8E0DB", margin: "4px auto 8px", flexShrink: 0 }} />
+        <div style={{ width: 36, height: 4, borderRadius: 99, background: "#D7E0E8", margin: "4px auto 8px", flexShrink: 0 }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12, flexShrink: 0 }}>
           <div className="truncate" style={{ fontSize: 17, fontWeight: 800, color: INK }}>{title}</div>
           <button
@@ -642,7 +642,7 @@ function Modal2({ title, onClose, children }) {
             aria-label="Close"
             style={{
               border: "none",
-              background: "#E9EEEB",
+              background: "#E8EEF4",
               color: INK,
               borderRadius: 10,
               width: 34,
@@ -669,12 +669,12 @@ function Modal2({ title, onClose, children }) {
 
 function Pill2({ text, tone = "neutral" }) {
   const map = {
-    neutral: { bg: "#EDF1EF", fg: MUTED },
+    neutral: { bg: "#ECF1F6", fg: MUTED },
     good: { bg: "#E3F1E8", fg: GOOD },
     warn: { bg: "#F7EFDD", fg: WARN },
     bad: { bg: "#F8E7E4", fg: BAD },
     navy: { bg: SOFT, fg: NAVY },
-  }[tone] || { bg: "#EDF1EF", fg: MUTED };
+  }[tone] || { bg: "#ECF1F6", fg: MUTED };
   return (
     <span
       style={{
@@ -1714,7 +1714,7 @@ function VaultStackV3() {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            boxShadow: "0 10px 26px rgba(8,40,30,0.30)",
+            boxShadow: "0 10px 26px rgba(6,32,52,0.30)",
           }}
         >
           <Check size={16} color={LIME} strokeWidth={3} />
@@ -1755,7 +1755,7 @@ function VaultStackV3() {
                     width: 40,
                     height: 26,
                     borderRadius: 10,
-                    background: on ? "rgba(198,240,78,0.16)" : "transparent",
+                    background: on ? "rgba(123,224,240,0.20)" : "transparent",
                   }}
                 >
                   <Icon size={19} strokeWidth={on ? 2.4 : 2} color={on ? LIME : "rgba(255,255,255,0.62)"} />
@@ -1830,7 +1830,7 @@ function VaultStackV3() {
               style={{
                 padding: "16px 8px",
                 borderRadius: 14,
-                border: "1px dashed #B9C6BF",
+                border: "1px dashed #B7C5D2",
                 background: "#fff",
                 cursor: "pointer",
                 display: "flex",
@@ -1911,7 +1911,7 @@ function VaultStackV3() {
 }
 
 /* ============================================================
-   Screens — one design system: green headers, flat white cards,
+   Screens — one design system: sea-blue headers, flat white cards,
    tabular money, no decoration that does not carry information.
    ============================================================ */
 const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
@@ -2161,7 +2161,7 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
           <ListRow
             Icon={Info}
             iconColor={owing > 0 ? BAD : MUTED}
-            iconBg={owing > 0 ? "#F8E7E4" : "#EDF1EF"}
+            iconBg={owing > 0 ? "#F8E7E4" : "#ECF1F6"}
             title="Owing to the boat"
             sub={owing > 0 ? "Carries to next season" : "Nobody is in debt"}
             amount={fmt(owing)}
@@ -2205,7 +2205,7 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
                   key={r.id}
                   Icon={Icon}
                   iconColor={r.kind === "sale" ? SEA : NAVY}
-                  iconBg={r.kind === "sale" ? "#E3F1E8" : "#EDF1EF"}
+                  iconBg={r.kind === "sale" ? "#E3F1E8" : "#ECF1F6"}
                   title={r.kind === "sale" ? "Fish sale" : r.category || "Expense"}
                   sub={fmtDate(r.date) + (r.note ? " · " + r.note : "")}
                   amount={(r.kind === "sale" ? "+ " : "− ") + fmt(r.amount)}
