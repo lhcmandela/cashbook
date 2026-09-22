@@ -114,6 +114,14 @@ function Snowflake(p){return <IconBase {...p}><line x1="2" y1="12" x2="22" y2="1
 function UtensilsCrossed(p){return <IconBase {...p}><path d="M16 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Z"/><path d="M8 2a3 3 0 0 0-3 3v3a3 3 0 0 0 3 3 3 3 0 0 0 3-3V5a3 3 0 0 0-3-3Z"/><path d="M8 11v11"/></IconBase>;}
 function Wrench(p){return <IconBase {...p}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></IconBase>;}
 function Car(p){return <IconBase {...p}><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></IconBase>;}
+function Bottle(p){return <IconBase {...p}><path d="M10 2h4"/><path d="M12 2v4"/><path d="M10 6h4l1 3v11a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V9l1-3Z"/><path d="M9 13h6"/></IconBase>;}
+function BoatIcon(p){return <IconBase {...p}><path d="M3 17h18l-2 3a2 2 0 0 1-1.7 1H6.7A2 2 0 0 1 5 20l-2-3Z"/><path d="M5 17v-5l7-3 7 3v5"/><path d="M12 9V3l5 4"/></IconBase>;}
+function Ruler(p){return <IconBase {...p}><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3"/><path d="M11 8v4"/><path d="M15 8v3"/><path d="M19 8v4"/></IconBase>;}
+function Drum(p){return <IconBase {...p}><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></IconBase>;}
+function Cup(p){return <IconBase {...p}><path d="M8 21h8"/><path d="M12 21v-4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M17 5h2a2 2 0 0 1 0 5h-2"/><path d="M7 5H5a2 2 0 0 0 0 5h2"/></IconBase>;}
+function Tags(p){return <IconBase {...p}><path d="M3 3h8l10 10-8 8L3 11V3Z"/><circle cx="7.5" cy="7.5" r="0.8"/></IconBase>;}
+function PersonPlus(p){return <IconBase {...p}><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M18 6v6"/><path d="M15 9h6"/></IconBase>;}
+function Coin(p){return <IconBase {...p}><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9"/><path d="M14.8 9.3c-.6-1-1.6-1.5-2.8-1.5-1.6 0-2.9.9-2.9 2.1 0 2.8 5.8 1.4 5.8 4.2 0 1.2-1.3 2.1-2.9 2.1-1.3 0-2.4-.5-3-1.5"/></IconBase>;}
 function Package(p){return <IconBase {...p}><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.29 7 8.71 5 8.71-5"/><line x1="12" y1="22" x2="12" y2="12"/></IconBase>;}
 function Delete(p){return <IconBase {...p}><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></IconBase>;}
 function Wind(p){return <IconBase {...p}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></IconBase>;}
@@ -153,7 +161,7 @@ const baseFont =
 const STORE_KEY = "vaultstack:app:v2"; /* bumped: new shape */
 const SEA_POINT = "latitude=5.9042&longitude=0.5847";
 
-const DEFAULT_EXPENSE_CATS = ["Premix", "Food", "Repairs", "Transport"];
+const DEFAULT_EXPENSE_CATS = ["Premix", "Food", "Repairs", "Transport", "Gaba", "Boat", "Six", "Nuvi", "Eha (Alcohol)", "Gata", "Klorme (One time members)", "Children", "90"];
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -196,7 +204,12 @@ function normalizeState(s) {
   if (!s) return s;
   return {
     ...s,
-    sales: s.sales || [],
+    sales: (s.sales || []).map((x) => ({
+      ...x,
+      paid: x.paid != null ? Number(x.paid) : Number(x.amount) || 0,
+      customer: x.customer || "",
+      payments: x.payments || [],
+    })),
     expenses: s.expenses || [],
     pastSeasons: s.pastSeasons || [],
     positions: s.positions || [],
@@ -312,10 +325,10 @@ const demoState = () => ({
     },
   ],
   sales: [
-    { id: uid(), date: "2026-04-14", amount: 3200, note: "Tuesday landing" },
-    { id: uid(), date: "2026-04-29", amount: 2750, note: "" },
-    { id: uid(), date: "2026-05-13", amount: 1850, note: "Small catch" },
-    { id: uid(), date: "2026-06-02", amount: 2400, note: "" },
+    { id: uid(), date: "2026-04-14", amount: 3200, note: "Tuesday landing", customer: "", paid: 3200, payments: [] },
+    { id: uid(), date: "2026-04-29", amount: 2750, note: "", customer: "Ama", paid: 1500, payments: [] },
+    { id: uid(), date: "2026-05-13", amount: 1850, note: "Small catch", customer: "Kojo", paid: 0, payments: [] },
+    { id: uid(), date: "2026-06-02", amount: 2400, note: "", customer: "", paid: 2400, payments: [] },
   ],
   expenses: [
     { id: uid(), date: "2026-04-14", amount: 450, category: "Premix" },
@@ -370,6 +383,15 @@ function catIcon(name) {
   if (n.includes("food") || n.includes("chop")) return UtensilsCrossed;
   if (n.includes("repair") || n.includes("net") || n.includes("mend")) return Wrench;
   if (n.includes("transport") || n.includes("car") || n.includes("lorry")) return Car;
+  if (n === "gaba") return Drum;
+  if (n === "boat") return BoatIcon;
+  if (n === "six") return Ruler;
+  if (n === "nuvi") return Bottle;
+  if (n.startsWith("eha") || n.includes("alcohol")) return Cup;
+  if (n === "gata") return Tags;
+  if (n.startsWith("klorme")) return PersonPlus;
+  if (n === "children") return Users;
+  if (n === "90") return Coin;
   return Package;
 }
 const GOODS_PRESETS = ["Bag of rice", "Premix", "Airtime", "Foodstuff"];
@@ -752,7 +774,7 @@ function SectionHead({ text, action, onAction }) {
   );
 }
 
-function ListRow({ Icon, iconColor, iconBg, title, sub, amount, amountTone, onClick, last }) {
+function ListRow({ Icon, iconColor, iconBg, title, sub, amount, amountTone, badge, badgeTone, onClick, last }) {
   return (
     <div
       onClick={onClick}
@@ -781,7 +803,10 @@ function ListRow({ Icon, iconColor, iconBg, title, sub, amount, amountTone, onCl
         {Icon ? <Icon size={19} color={iconColor || NAVY} /> : null}
       </div>
       <div className="truncate" style={{ flex: 1, minWidth: 0 }}>
-        <div className="truncate" style={{ fontWeight: 700, fontSize: 15, color: INK }}>{title}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <span className="truncate" style={{ fontWeight: 700, fontSize: 15, color: INK }}>{title}</span>
+          {badge ? <Pill text={badge} tone={badgeTone || "neutral"} /> : null}
+        </div>
         {sub ? <div className="truncate" style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>{sub}</div> : null}
       </div>
       {amount ? (
@@ -823,6 +848,8 @@ function IconBtn({ onClick, label, children }) {
 /* -------- v8 payout engine: no owner's maintenance split -------- */
 function computeFinancials2(state) {
   const grossSales = state.sales.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  const cashReceived = state.sales.reduce((s, x) => s + salePaid(x), 0);
+  const creditOutstanding = state.sales.reduce((s, x) => s + saleOutstanding(x), 0);
   const fixedTotal = state.season.fixed.reduce((s, x) => s + (Number(x.amount) || 0), 0);
   const varTotal = state.expenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
   const netPot = grossSales - fixedTotal - varTotal;
@@ -833,6 +860,8 @@ function computeFinancials2(state) {
   const vpu = totalUnits > 0 ? potForSplit / totalUnits : 0;
   return {
     grossSales,
+    cashReceived,
+    creditOutstanding,
     fixedTotal,
     varTotal,
     netPot,
@@ -879,7 +908,7 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
         flex: 1,
         minHeight: 0,
         width: "100%",
-        background: DEEP,
+        background: "#fff",
         display: "flex",
         flexDirection: "column",
         padding: "16px 20px calc(14px + env(safe-area-inset-bottom, 0px))",
@@ -893,21 +922,21 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
             width: 32,
             height: 32,
             borderRadius: 10,
-            background: "rgba(255,255,255,0.12)",
+            background: SOFT,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Anchor size={17} color={LIME} strokeWidth={2.4} />
+          <Anchor size={17} color={NAVY} strokeWidth={2.4} />
         </div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: 0.2 }}>VaultStack</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: INK, letterSpacing: 0.2 }}>VaultStack</div>
       </div>
 
       <div style={{ flexShrink: 0, textAlign: "center", marginTop: 16 }}>
-        <div style={{ fontSize: 19, fontWeight: 800, color: "#fff" }}>{title}</div>
+        <div style={{ fontSize: 19, fontWeight: 800, color: INK }}>{title}</div>
         {subtitle ? (
-          <div className="truncate" style={{ fontSize: 13.5, color: "rgba(255,255,255,0.70)", marginTop: 4 }}>
+          <div className="truncate" style={{ fontSize: 13.5, color: MUTED, marginTop: 4 }}>
             {subtitle}
           </div>
         ) : null}
@@ -919,13 +948,13 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
                 width: 13,
                 height: 13,
                 borderRadius: 999,
-                border: "2px solid rgba(255,255,255,0.42)",
-                background: i < digits.length ? LIME : "transparent",
+                border: "2px solid #C4D2DE",
+                background: i < digits.length ? NAVY : "transparent",
               }}
             />
           ))}
         </div>
-        <div style={{ minHeight: 18, color: "#FFB8AB", fontSize: 13.5, fontWeight: 600 }}>{errorMsg || ""}</div>
+        <div style={{ minHeight: 18, color: BAD, fontSize: 13.5, fontWeight: 600 }}>{errorMsg || ""}</div>
       </div>
 
       <div
@@ -955,7 +984,7 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
             k === "" ? (
               <div key={i} />
             ) : (
-              <Key key={i} tone="dark" onClick={() => press(k)}>
+              <Key key={i} onClick={() => press(k)}>
                 {k === "del" ? <Delete size={19} color="#fff" /> : k}
               </Key>
             )
@@ -968,7 +997,7 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
           <div>
             <Btn
               label={bio.unlocking ? "Waiting for the scan…" : "Unlock with face or fingerprint"}
-              kind="onGreenGhost"
+              kind="primary"
               small
               onClick={bio.onUnlock}
               disabled={bio.unlocking}
@@ -978,14 +1007,14 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
                 textAlign: "center",
                 fontSize: 12,
                 marginTop: 8,
-                color: bio.unlockError ? "#FFB8AB" : "rgba(255,255,255,0.58)",
+                color: bio.unlockError ? BAD : MUTED,
               }}
             >
               {bio.unlockError || "No sensor? Type your PIN above."}
             </div>
           </div>
         ) : (
-          <div style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.52)" }}>
+          <div style={{ textAlign: "center", fontSize: 12, color: MUTED }}>
             Your PIN is kept on this phone only.
           </div>
         )}
@@ -1358,6 +1387,7 @@ function VaultStackV3() {
   const [expCat, setExpCat] = useState(null);
   const [expSession, setExpSession] = useState([]);
   const [newCatName, setNewCatName] = useState("");
+  const [payCust, setPayCust] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
   const [saveStamp, setSaveStamp] = useState(null);
   const [bioSupported, setBioSupported] = useState(false);
@@ -1439,6 +1469,25 @@ function VaultStackV3() {
   };
 
   const addSale = (s) => setState((st) => ({ ...st, sales: [...st.sales, s] }));
+  const addRecordPayment = (saleId, pay) =>
+    setState((st) => ({
+      ...st,
+      sales: st.sales.map((x) =>
+        x.id === saleId ? { ...x, payments: [...(x.payments || []), pay] } : x
+      ),
+    }));
+  const clearCustomerDebt = (customerName) =>
+    setState((st) => {
+      let changed = false;
+      const sales = st.sales.map((x) => {
+        if ((x.customer || "").trim().toLowerCase() !== customerName.toLowerCase()) return x;
+        const due = Math.max(0, (Number(x.amount) || 0) - salePaid(x));
+        if (due <= 0) return x;
+        changed = true;
+        return { ...x, payments: [...(x.payments || []), { id: uid(), date: todayISO(), amount: due }] };
+      });
+      return changed ? { ...st, sales } : st;
+    });
   const addExpense = (e) => setState((st) => ({ ...st, expenses: [...st.expenses, e] }));
   const removeSale = (id) => setState((st) => ({ ...st, sales: st.sales.filter((x) => x.id !== id) }));
   const removeExpense = (id) => setState((st) => ({ ...st, expenses: st.expenses.filter((x) => x.id !== id) }));
@@ -1558,7 +1607,7 @@ function VaultStackV3() {
 
   if (locked)
     return shell(
-      <div style={{ flex: 1, minHeight: 0, display: "flex", background: DEEP, overflow: "hidden" }}>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", background: "#fff", overflow: "hidden" }}>
         <PinPad3
           title="Enter your PIN"
           subtitle={state.company.name}
@@ -1633,6 +1682,11 @@ function VaultStackV3() {
             fin={fin}
             openSale={openSale}
             removeSale={removeSale}
+            onRecordPayment={(c) => {
+              setPayCust(c);
+              setFlow("pay");
+            }}
+            onClearCustomer={clearCustomerDebt}
             toast={toast}
           />
         )}
@@ -1778,16 +1832,54 @@ function VaultStackV3() {
       </div>
 
       {flow === "sale" && (
-        <KeypadSheet
-          title="Log a fish sale"
-          HeaderIcon={Fish}
-          subtitle="How much money did you receive?"
-          confirmLabel="Save sale"
+        <SaleSheet
           onClose={() => setFlow(null)}
-          onSave={({ amount, date }) => {
-            addSale({ id: uid(), date, amount, note: "", createdAt: new Date().toISOString() });
+          onDone={({ amount, customer, paid, date }) => {
+            addSale({
+              id: uid(),
+              date,
+              amount,
+              note: "",
+              customer,
+              paid,
+              payments: [],
+              createdAt: new Date().toISOString(),
+            });
             setFlow(null);
-            toast("Sale saved · " + fmt(amount));
+            const due = Math.max(0, amount - paid);
+            toast(
+              due > 0.004
+                ? "Sale saved · " + fmt(due) + " in credit" + (customer ? " for " + customer : "")
+                : "Sale saved · " + fmt(amount)
+            );
+          }}
+        />
+      )}
+
+      {flow === "pay" && payCust && (
+        <RecordPaymentSheet
+          credit={payCust}
+          onClose={() => {
+            setFlow(null);
+            setPayCust(null);
+          }}
+          onDone={({ amount, date }) => {
+            const name = payCust.name;
+            let left = amount;
+            /* spread the payment across that customer's open sales, oldest first */
+            const targets = state.sales
+              .filter((x) => (x.customer || "").trim().toLowerCase() === name.toLowerCase())
+              .filter((x) => saleOutstanding(x) > 0.004)
+              .sort((a, b) => (a.date < b.date ? -1 : 1));
+            targets.forEach((t) => {
+              if (left <= 0.004) return;
+              const take = Math.min(left, saleOutstanding(t));
+              addRecordPayment(t.id, { id: uid(), date, amount: take });
+              left -= take;
+            });
+            setFlow(null);
+            setPayCust(null);
+            toast("Payment saved · " + fmt(amount));
           }}
         />
       )}
@@ -2031,13 +2123,11 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div className="truncate" style={{ minWidth: 0 }}>
-            <div className="truncate" style={{ fontSize: 15, fontWeight: 600, color: "#fff" }}>
-              {first ? "Akwaaba, " + first : "Akwaaba"}
-            </div>
-            <div className="truncate" style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginTop: 3 }}>
-              {today}
-            </div>
+          <div
+            className="truncate"
+            style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: -0.3 }}
+          >
+            Home
           </div>
           {onLock ? (
             <IconBtn onClick={onLock} label="Lock VaultStack">
@@ -2046,7 +2136,11 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
           ) : null}
         </div>
 
-        <div style={{ marginTop: 20 }}>
+        <div className="truncate" style={{ fontSize: 13, color: "rgba(255,255,255,0.72)", marginTop: 2 }}>
+          {first ? "Woezor, " + first + " \u00b7 " + today : today}
+        </div>
+
+        <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,0.68)" }}>Money in the pot</div>
           <div className="num" style={{ fontSize: 34, fontWeight: 700, color: "#fff", lineHeight: 1.15, marginTop: 4 }}>
             {fmt(fin.netPot)}
@@ -2126,14 +2220,21 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
 }
 
 /* ---------------- Sales ---------------- */
-function SalesTab({ state, fin, openSale, removeSale, toast }) {
+function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCustomer, toast }) {
   const [del, setDel] = useState(null);
   const sales = useMemo(
-    () => [...state.sales].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
+    () =>
+      [...state.sales].sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (ta !== tb) return tb - ta;
+        return a.date < b.date ? 1 : a.date > b.date ? -1 : 0;
+      }),
     [state.sales]
   );
-  const best = sales.reduce((m, x) => Math.max(m, Number(x.amount) || 0), 0);
-  const avg = sales.length ? fin.grossSales / sales.length : 0;
+  const credits = useMemo(() => creditCustomers(state.sales), [state.sales]);
+  const statusTone = (s) =>
+    saleStatusLabel(s) === "Paid" ? "good" : saleStatusLabel(s) === "Partly paid" ? "warn" : "bad";
 
   return (
     <div>
@@ -2147,16 +2248,69 @@ function SalesTab({ state, fin, openSale, removeSale, toast }) {
           <div className="num" style={{ fontSize: 27, fontWeight: 800, color: "#fff", marginTop: 2 }}>
             {fmt(fin.grossSales)}
           </div>
-          {sales.length > 0 ? (
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 5 }}>
-              Best landing <b className="num" style={{ color: "#fff" }}>{fmt(best)}</b> · average{" "}
-              <b className="num" style={{ color: "#fff" }}>{fmt(avg)}</b>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 5 }}>
+            Cash received <b className="num" style={{ color: "#fff" }}>{fmt(fin.cashReceived)}</b>
+          </div>
+          {fin.creditOutstanding > 0 ? (
+            <div style={{ fontSize: 12, color: "#FFD9A8", marginTop: 3 }}>
+              Credit outstanding <b className="num" style={{ color: "#FFD9A8" }}>{fmt(fin.creditOutstanding)}</b>
             </div>
           ) : null}
           <div style={{ marginTop: 14 }}>
             <Btn label={<><Plus size={18} /> Log sale</>} kind="onGreen" onClick={openSale} />
           </div>
         </div>
+
+        {credits.length > 0 ? (
+          <div>
+            <SectionHead text="Credit \u2014 money customers owe" />
+            <Card pad={0} style={{ overflow: "hidden" }}>
+              {credits.map((c, i) => (
+                <div key={c.name} style={{ borderBottom: i === credits.length - 1 ? "none" : "1px solid " + LINE }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px 8px" }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        flexShrink: 0,
+                        background: "#F7EFDD",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        fontSize: 15,
+                        color: WARN,
+                      }}
+                    >
+                      {(c.name[0] || "?").toUpperCase()}
+                    </div>
+                    <div className="truncate" style={{ flex: 1, minWidth: 0 }}>
+                      <div className="truncate" style={{ fontWeight: 700, fontSize: 15, color: INK }}>{c.name}</div>
+                      <div className="truncate" style={{ fontSize: 12.5, color: MUTED, marginTop: 1 }}>
+                        Sale {fmt(c.orig)} · paid {fmt(c.paid)}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div className="num" style={{ fontSize: 15, fontWeight: 700, color: WARN, whiteSpace: "nowrap" }}>
+                        {fmt(c.owed)}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, marginTop: 1 }}>owed</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, padding: "0 14px 12px 66px" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Btn label="Record payment" kind="primary" small onClick={() => onRecordPayment(c)} />
+                    </div>
+                    <div style={{ width: 116, flexShrink: 0 }}>
+                      <Btn label="All paid" kind="ghost" small onClick={() => onClearCustomer(c.name)} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          </div>
+        ) : null}
 
         <SectionHead text="All sales" />
         {sales.length === 0 ? (
@@ -2167,20 +2321,26 @@ function SalesTab({ state, fin, openSale, removeSale, toast }) {
           </Card>
         ) : (
           <Card pad={0} style={{ overflow: "hidden" }}>
-            {sales.map((s, i) => (
-              <ListRow
-                key={s.id}
-                Icon={Fish}
-                iconColor={SEA}
-                iconBg="#E3F1E8"
-                title={s.note ? s.note : "Fish sale"}
-                sub={fmtDate(s.date)}
-                amount={"+ " + fmt(s.amount)}
-                amountTone={GOOD}
-                onClick={() => setDel(s)}
-                last={i === sales.length - 1}
-              />
-            ))}
+            {sales.map((s, i) => {
+              const cust = (s.customer || "").trim();
+              const due = saleOutstanding(s);
+              return (
+                <ListRow
+                  key={s.id}
+                  Icon={Fish}
+                  iconColor={SEA}
+                  iconBg="#E3F1E8"
+                  title={cust ? cust : s.note ? s.note : "Fish sale"}
+                  sub={fmtDate(s.date) + (due > 0 ? " · " + fmt(due) + " still owed" : "")}
+                  amount={"+ " + fmt(s.amount)}
+                  amountTone={GOOD}
+                  badge={saleStatusLabel(s)}
+                  badgeTone={statusTone(s)}
+                  onClick={() => setDel(s)}
+                  last={i === sales.length - 1}
+                />
+              );
+            })}
           </Card>
         )}
         <div style={{ fontSize: 12, color: MUTED, padding: "2px 2px 8px" }}>Tap a sale to remove it.</div>
@@ -2189,7 +2349,10 @@ function SalesTab({ state, fin, openSale, removeSale, toast }) {
       {del && (
         <ConfirmRemove
           title={"Fish sale · " + fmt(del.amount)}
-          lines={[fmtDate(del.date) + (del.note ? " · " + del.note : "")]}
+          lines={[
+            fmtDate(del.date) + ((del.customer || "").trim() ? " · " + del.customer.trim() : ""),
+            "Status: " + saleStatusLabel(del) + (saleOutstanding(del) > 0.004 ? " · " + fmt(saleOutstanding(del)) + " still owed" : ""),
+          ]}
           onClose={() => setDel(null)}
           onConfirm={() => {
             removeSale(del.id);
@@ -2199,6 +2362,274 @@ function SalesTab({ state, fin, openSale, removeSale, toast }) {
         />
       )}
     </div>
+  );
+}
+
+/* -------- new sale: total, then who and how much cash came now -------- */
+function SaleSheet({ onClose, onDone }) {
+  const [stage, setStage] = useState("total");
+  const [total, setTotal] = useState("");
+  const [cust, setCust] = useState("");
+  const [paid, setPaid] = useState("");
+  const [date, setDate] = useState(todayISO());
+  const [editDate, setEditDate] = useState(false);
+
+  const amt = Number(total) || 0;
+  const paidAmt = Math.min(Number(paid) || 0, amt);
+  const due = Math.max(0, amt - paidAmt);
+  const pressKey = (k, setter) => {
+    if (k === "del") return setter((v) => v.slice(0, -1));
+    setter((v) => {
+      if (k === "." && v.includes(".")) return v;
+      if (v.includes(".") && v.split(".")[1].length >= 2) return v;
+      if (v.replace(".", "").length >= 8) return v;
+      if (v === "" && k === ".") return "0.";
+      if (v === "0" && k !== ".") return k;
+      return v + k;
+    });
+  };
+  const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "del"];
+
+  return (
+    <Modal title="Log a fish sale" onClose={onClose}>
+      {stage === "total" ? (
+        <div>
+          <div
+            style={{
+              background: SOFT,
+              borderRadius: 16,
+              padding: "16px 16px 12px",
+              textAlign: "center",
+              marginBottom: 12,
+            }}
+          >
+            <div className="num" style={{ fontSize: 33, fontWeight: 800, color: NAVY, lineHeight: 1.15 }}>
+              GH₵ {total === "" ? "0" : total}
+            </div>
+            <div style={{ fontSize: 12.5, color: MUTED, marginTop: 4 }}>Total value of the fish sold</div>
+            <button
+              onClick={() => setEditDate((e) => !e)}
+              style={{
+                border: "none",
+                background: "none",
+                color: MUTED,
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: "underline",
+                cursor: "pointer",
+                marginTop: 6,
+                padding: 0,
+              }}
+            >
+              {date === todayISO() ? "Today" : fmtDate(date)} · change
+            </button>
+            {editDate && (
+              <div style={{ marginTop: 10 }}>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  style={{
+                    padding: "10px 12px",
+                    fontSize: 16,
+                    border: "1px solid " + LINE,
+                    borderRadius: 12,
+                    fontFamily: baseFont,
+                    background: "#fff",
+                    color: INK,
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
+            {KEYS.map((k, i) => (
+              <Key key={i} onClick={() => pressKey(k, setTotal)}>
+                {k === "del" ? <Delete size={21} /> : k}
+              </Key>
+            ))}
+          </div>
+          <Btn label="Next" disabled={!amt} onClick={() => setStage("pay")} />
+        </div>
+      ) : (
+        <div>
+          <Card pad={12} style={{ background: SOFT, border: "none" }}>
+            <Row left="Sale total" right={fmt(amt)} strong />
+            <Row left="Date" right={fmtDate(date)} />
+          </Card>
+          <Field label="Customer name (optional)" value={cust} onChange={setCust} placeholder="e.g. Ama" />
+          <Field
+            label="Cash received now"
+            value={paid}
+            onChange={(v) => setPaid(v.replace(/[^0-9.]/g, ""))}
+            placeholder="0"
+            inputMode="decimal"
+          />
+          <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 12, lineHeight: 1.4 }}>
+            Leave at 0 if they took the fish on credit.
+          </div>
+          <Card pad={12} style={{ background: MIST, border: "none" }}>
+            <Row left="Still owed (Credit)" right={fmt(due)} strong color={due > 0.004 ? WARN : GOOD} />
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
+              {due <= 0.004 ? "Status: Paid" : paidAmt > 0 ? "Status: Partly paid" : "Status: Credit"}
+            </div>
+          </Card>
+          <div style={{ display: "flex", gap: 10, marginTop: 2 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Btn label="Back" kind="ghost" onClick={() => setStage("total")} />
+            </div>
+            <div style={{ flex: 2, minWidth: 0 }}>
+              <Btn
+                label={"Save sale · " + fmt(amt)}
+                disabled={!amt}
+                onClick={() => onDone({ amount: amt, customer: cust.trim(), paid: paidAmt, date })}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/* -------- customer pays back part of what they owe -------- */
+function RecordPaymentSheet({ credit, onClose, onDone }) {
+  const [val, setVal] = useState("");
+  const [date, setDate] = useState(todayISO());
+  const [editDate, setEditDate] = useState(false);
+  const amt = Number(val) || 0;
+  const over = amt > credit.owed + 0.004;
+  const remaining = Math.max(0, credit.owed - amt);
+  const half = Math.round((credit.owed / 2) * 100) / 100;
+
+  return (
+    <Modal title={"Payment from " + credit.name} onClose={onClose}>
+      <div
+        style={{
+          background: SOFT,
+          borderRadius: 16,
+          padding: "16px 16px 12px",
+          textAlign: "center",
+          marginBottom: 12,
+        }}
+      >
+        <div className="num" style={{ fontSize: 33, fontWeight: 800, color: NAVY, lineHeight: 1.15 }}>
+          GH₵ {val === "" ? "0" : val}
+        </div>
+        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 4 }}>
+          Owed: {fmt(credit.owed)} · {credit.sales.length} {credit.sales.length === 1 ? "sale" : "sales"}
+        </div>
+        <button
+          onClick={() => setEditDate((e) => !e)}
+          style={{
+            border: "none",
+            background: "none",
+            color: MUTED,
+            fontSize: 13,
+            fontWeight: 700,
+            textDecoration: "underline",
+            cursor: "pointer",
+            marginTop: 6,
+            padding: 0,
+          }}
+        >
+          {date === todayISO() ? "Today" : fmtDate(date)} · change
+        </button>
+        {editDate && (
+          <div style={{ marginTop: 10 }}>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{
+                padding: "10px 12px",
+                fontSize: 16,
+                border: "1px solid " + LINE,
+                borderRadius: 12,
+                fontFamily: baseFont,
+                background: "#fff",
+                color: INK,
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button
+          className="vs-press"
+          onClick={() => setVal(String(credit.owed))}
+          style={{
+            flex: 1,
+            padding: "11px 0",
+            borderRadius: 12,
+            border: "1px solid " + LINE,
+            background: "#fff",
+            color: NAVY,
+            fontWeight: 700,
+            fontSize: 14.5,
+            cursor: "pointer",
+          }}
+        >
+          Full {fmt(credit.owed)}
+        </button>
+        <button
+          className="vs-press"
+          onClick={() => setVal(String(half))}
+          style={{
+            flex: 1,
+            padding: "11px 0",
+            borderRadius: 12,
+            border: "1px solid " + LINE,
+            background: "#fff",
+            color: NAVY,
+            fontWeight: 700,
+            fontSize: 14.5,
+            cursor: "pointer",
+          }}
+        >
+          Half {fmt(half)}
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "del"].map((k, i) => (
+          <Key
+            key={i}
+            onClick={() =>
+              k === "del"
+                ? setVal((v) => v.slice(0, -1))
+                : setVal((v) => {
+                    if (k === "." && v.includes(".")) return v;
+                    if (v.includes(".") && v.split(".")[1].length >= 2) return v;
+                    if (v.replace(".", "").length >= 8) return v;
+                    if (v === "" && k === ".") return "0.";
+                    if (v === "0" && k !== ".") return k;
+                    return v + k;
+                  })
+            }
+          >
+            {k === "del" ? <Delete size={21} /> : k}
+          </Key>
+        ))}
+      </div>
+
+      {over ? (
+        <div style={{ fontSize: 13, fontWeight: 700, color: BAD, marginBottom: 10, textAlign: "center" }}>
+          More than they owe.
+        </div>
+      ) : amt > 0 ? (
+        <div style={{ fontSize: 13, fontWeight: 700, color: MUTED, marginBottom: 10, textAlign: "center" }}>
+          {remaining <= 0.004 ? "This clears the credit." : "Remaining after this: " + fmt(remaining)}
+        </div>
+      ) : null}
+
+      <Btn
+        label={"Record payment" + (amt > 0 ? " · " + fmt(amt) : "")}
+        disabled={!amt || over}
+        onClick={() => onDone({ amount: amt, date })}
+      />
+    </Modal>
   );
 }
 
@@ -2573,6 +3004,12 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
             <div style={{ borderTop: "1px solid " + LINE, margin: "6px 0 2px" }} />
             <Row left="Pot shared by units" right={fmt(fin.potForSplit)} strong />
           </Card>
+          {fin.creditOutstanding > 0 ? (
+            <div style={{ fontSize: 13, color: WARN, marginTop: 8, lineHeight: 1.45 }}>
+              Careful: customers still owe {fmt(fin.creditOutstanding)} in credit. Collect it
+              before closing — it will not carry to the new season.
+            </div>
+          ) : null}
           <Btn
             label="Yes, close the season"
             onClick={() => {
@@ -3005,6 +3442,38 @@ function WorkersTabV2({
 }
 
 /* ---------------- KeypadSheet: MoMo-style amount entry ---------------- */
+/* -------- credit sales: what customers still owe --------
+   A sale records the total and the cash taken at the time.
+   Anything not paid sits in Credit until the customer settles. */
+function salePaid(sale) {
+  const atSale = Number(sale.paid) || 0;
+  const after = (sale.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  return atSale + after;
+}
+function saleOutstanding(sale) {
+  return Math.max(0, (Number(sale.amount) || 0) - salePaid(sale));
+}
+function saleStatusLabel(sale) {
+  const due = saleOutstanding(sale);
+  if (due <= 0.004) return "Paid";
+  if (salePaid(sale) > 0) return "Partly paid";
+  return "Credit";
+}
+function creditCustomers(sales) {
+  const map = {};
+  (sales || []).forEach((s) => {
+    const due = saleOutstanding(s);
+    if (due <= 0.004) return;
+    const name = (s.customer || "").trim() || "Unknown customer";
+    const row = map[name] || (map[name] = { name, owed: 0, orig: 0, paid: 0, sales: [] });
+    row.owed += due;
+    row.orig += Number(s.amount) || 0;
+    row.paid += salePaid(s);
+    row.sales.push(s);
+  });
+  return Object.values(map).sort((a, b) => b.owed - a.owed);
+}
+
 function KeypadSheet({
   title,
   HeaderIcon,
