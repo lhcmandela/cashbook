@@ -927,7 +927,17 @@ function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
         <div style={{ minHeight: 18, color: "#FFB8AB", fontSize: 13.5, fontWeight: 600 }}>{errorMsg || ""}</div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 4 }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingTop: 4,
+          overflowY: "auto",
+        }}
+      >
         <div
           style={{
             width: "100%",
