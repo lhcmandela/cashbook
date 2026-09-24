@@ -10,6 +10,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="VaultStack">
 <title>VaultStack</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
@@ -164,6 +167,18 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 .sx{background:var(--fill);border:none}
 .sbody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:8px 16px calc(24px + env(safe-area-inset-bottom,0px))}
 .stmt{background:var(--card2);border-radius:16px;padding:14px 16px;margin:0 0 16px;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.55;white-space:pre-wrap;color:var(--label)}
+.done{position:fixed;left:50%;top:44%;z-index:80;min-width:156px;max-width:250px;padding:20px 20px 16px;border-radius:26px;text-align:center;pointer-events:none;color:#fff;
+  background:rgba(28,28,30,.84);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:0 18px 50px -12px rgba(0,0,0,.35);
+  transform:translate(-50%,-50%);animation:vdoneIn .2s cubic-bezier(.2,.9,.3,1) both,vdoneOut .24s ease-in 1s forwards}
+.done-ic{width:50px;height:50px;display:block;margin:0 auto 10px}
+.done-c{fill:#30D158;transform-origin:26px 26px;animation:vdoneRing .32s cubic-bezier(.2,.9,.3,1.15) both}
+.done-k{fill:none;stroke:#fff;stroke-width:4.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:32;stroke-dashoffset:32;animation:vdoneDraw .3s .14s ease-out forwards}
+.done-t{font-size:15px;font-weight:600;letter-spacing:-.015em;line-height:1.3}
+@keyframes vdoneIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes vdoneOut{to{opacity:0;transform:translate(-50%,-50%) scale(.97)}}
+@keyframes vdoneRing{from{transform:scale(.55)}to{transform:scale(1)}}
+@keyframes vdoneDraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){.done-k{stroke-dashoffset:0}}
 @keyframes vup{from{transform:translateY(100%)}to{transform:none}}
 @keyframes vfade{from{opacity:0}to{opacity:1}}
 @keyframes vpop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
@@ -265,6 +280,12 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 </head>
 <body>
 <div id="root"></div>
+<script>
+  /* keep the app on the phone so it opens without signal (needs https) */
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  }
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.28.4/babel.min.js"></script>
@@ -444,16 +465,42 @@ async function wipeSaved() {
   } catch {}
 }
 
+/* A sale is ONE total for the fish sold at a landing. Credit is a breakdown
+   of part of that same total: each entry is a customer who took fish
+   without paying, with their own repayments. Cash received is always
+   total − outstanding credit, so credit and repayments can never add to
+   Total Sales.
+   Older records (one optional customer, cash taken at the sale, later
+   repayments) are converted into the same numbers on load. */
+function normalizeSale(x) {
+  const amount = Number(x.amount) || 0;
+  const cleanPays = (ps) => (ps || []).map((p) => ({ ...p, id: p.id || uid(), amount: Number(p.amount) || 0 }));
+  let credits;
+  if (Array.isArray(x.credits)) {
+    credits = x.credits.map((c) => ({
+      id: c.id || uid(),
+      customer: (c.customer || "").trim() || "Unknown customer",
+      amount: Number(c.amount) || 0,
+      date: c.date || x.date,
+      payments: cleanPays(c.payments),
+    }));
+  } else {
+    const paidAtSale = x.paid != null ? Number(x.paid) || 0 : amount;
+    const creditAmt = Math.max(0, amount - paidAtSale);
+    credits =
+      creditAmt > 0.004
+        ? [{ id: uid(), customer: (x.customer || "").trim() || "Unknown customer", amount: creditAmt, date: x.date, payments: cleanPays(x.payments) }]
+        : [];
+  }
+  const { paid, customer, payments, ...rest } = x;
+  return { ...rest, amount, credits };
+}
+
 function normalizeState(s) {
   if (!s) return s;
   return {
     ...s,
-    sales: (s.sales || []).map((x) => ({
-      ...x,
-      paid: x.paid != null ? Number(x.paid) : Number(x.amount) || 0,
-      customer: x.customer || "",
-      payments: x.payments || [],
-    })),
+    sales: (s.sales || []).map(normalizeSale),
     expenses: s.expenses || [],
     pastSeasons: s.pastSeasons || [],
     positions: s.positions || [],
@@ -569,10 +616,10 @@ const demoState = () => ({
     },
   ],
   sales: [
-    { id: uid(), date: "2026-04-14", amount: 3200, note: "Tuesday landing", customer: "", paid: 3200, payments: [] },
-    { id: uid(), date: "2026-04-29", amount: 2750, note: "", customer: "Ama", paid: 1500, payments: [] },
-    { id: uid(), date: "2026-05-13", amount: 1850, note: "Small catch", customer: "Kojo", paid: 0, payments: [] },
-    { id: uid(), date: "2026-06-02", amount: 2400, note: "", customer: "", paid: 2400, payments: [] },
+    { id: uid(), date: "2026-04-14", amount: 3200, note: "Tuesday landing", credits: [] },
+    { id: uid(), date: "2026-04-29", amount: 2750, note: "", credits: [{ id: uid(), customer: "Ama", amount: 1250, date: "2026-04-29", payments: [] }] },
+    { id: uid(), date: "2026-05-13", amount: 1850, note: "Small catch", credits: [{ id: uid(), customer: "Kojo", amount: 1850, date: "2026-05-13", payments: [] }] },
+    { id: uid(), date: "2026-06-02", amount: 2400, note: "", credits: [] },
   ],
   expenses: [
     { id: uid(), date: "2026-04-14", amount: 450, category: "Premix" },
@@ -1691,6 +1738,10 @@ function VaultStackV3() {
   const saveTimer = useRef(null);
   const toastTimer = useRef(null);
   const firstRender = useRef(true);
+  /* a completed log waits here until the save to the phone succeeds */
+  const pendingDone = useRef(null);
+  const [done, setDone] = useState(null);
+  const doneTimer = useRef(null);
   const [pinMode, setPinMode] = useState(false);
   const [menu, setMenu] = useState(null);
   const scrollRef = useRef(null);
@@ -1738,10 +1789,25 @@ function VaultStackV3() {
     saveTimer.current = setTimeout(async () => {
       const ok = await persist(state);
       setSaveStamp(ok ? new Date() : "error");
+      /* the check mark only appears once the change is really on the phone */
+      const msg = pendingDone.current;
+      pendingDone.current = null;
+      if (msg) {
+        if (ok) {
+          setDone({ msg, key: Date.now() });
+          if (doneTimer.current) clearTimeout(doneTimer.current);
+          doneTimer.current = setTimeout(() => setDone(null), 1250);
+        } else {
+          toast("Not saved on this phone. Please try again.");
+        }
+      }
     }, 450);
     return () => saveTimer.current && clearTimeout(saveTimer.current);
   }, [state]);
 
+  const logged = (msg) => {
+    pendingDone.current = msg;
+  };
   const toast = (msg) => {
     setToastMsg(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -1771,23 +1837,48 @@ function VaultStackV3() {
     }
   };
 
-  const addSale = (s) => setState((st) => ({ ...st, sales: [...st.sales, s] }));
-  const addRecordPayment = (saleId, pay) =>
+  /* a sale is saved only if its credit fits inside its total */
+  const addSale = (s) => {
+    if (!creditsFit(s.amount, s.credits)) return false;
+    setState((st) => ({ ...st, sales: [...st.sales, s] }));
+    return true;
+  };
+  /* attach another customer's credit to an existing sale */
+  const addCredit = (saleId, credit) => {
+    const sale = state.sales.find((x) => x.id === saleId);
+    if (!sale || !creditsFit(sale.amount, [...(sale.credits || []), credit])) return false;
+    setState((st) => ({
+      ...st,
+      sales: st.sales.map((x) => (x.id === saleId ? { ...x, credits: [...(x.credits || []), credit] } : x)),
+    }));
+    return true;
+  };
+  /* a repayment reduces one credit entry; the sale total never changes */
+  const addCreditPayment = (saleId, creditId, pay) =>
     setState((st) => ({
       ...st,
       sales: st.sales.map((x) =>
-        x.id === saleId ? { ...x, payments: [...(x.payments || []), pay] } : x
+        x.id !== saleId
+          ? x
+          : { ...x, credits: (x.credits || []).map((c) => (c.id === creditId ? { ...c, payments: [...(c.payments || []), pay] } : c)) }
       ),
     }));
   const clearCustomerDebt = (customerName) =>
     setState((st) => {
       let changed = false;
+      const key = custKey(customerName);
       const sales = st.sales.map((x) => {
-        if ((x.customer || "").trim().toLowerCase() !== customerName.toLowerCase()) return x;
-        const due = Math.max(0, (Number(x.amount) || 0) - salePaid(x));
-        if (due <= 0) return x;
+        let touched = false;
+        const credits = (x.credits || []).map((c) => {
+          if ((custKey(c.customer) || "unknown customer") !== key) return c;
+          const due = creditOwed(c);
+          if (due <= 0.004) return c;
+          touched = true;
+          return { ...c, payments: [...(c.payments || []), { id: uid(), date: todayISO(), amount: due }] };
+        });
+        if (!touched) return x;
         changed = true;
-        return { ...x, payments: [...(x.payments || []), { id: uid(), date: todayISO(), amount: due }] };
+        return { ...x, credits };
       });
       return changed ? { ...st, sales } : st;
     });
@@ -1999,6 +2090,8 @@ function VaultStackV3() {
               setFlow("pay");
             }}
             onClearCustomer={clearCustomerDebt}
+            onAddCredit={addCredit}
+            logged={logged}
             toast={toast}
           />
         )}
@@ -2022,6 +2115,7 @@ function VaultStackV3() {
             removePayment={removePayment}
             removeAdjustment={removeAdjustment}
             toast={toast}
+            logged={logged}
           />
         )}
         {tab === "weather" && <WeatherTabV2 onBack={() => setTab("more")} />}
@@ -2110,6 +2204,18 @@ function VaultStackV3() {
         />
       )}
 
+      {done
+        ? ReactDOM.createPortal(
+            <div className="done" key={done.key} role="status" aria-live="polite">
+              <svg className="done-ic" viewBox="0 0 52 52" aria-hidden="true">
+                <circle className="done-c" cx="26" cy="26" r="24" />
+                <path className="done-k" d="M15.5 27.2l7 7L37 19.2" />
+              </svg>
+              <div className="done-t">{done.msg}</div>
+            </div>,
+            document.body
+          )
+        : null}
       {toastMsg && (
         <div className="toast" role="status">
           <Check size={17} color="#30D158" strokeWidth={3} />
@@ -2120,24 +2226,20 @@ function VaultStackV3() {
       {flow === "sale" && (
         <SaleSheet
           onClose={() => setFlow(null)}
-          onDone={({ amount, customer, paid, date }) => {
-            addSale({
+          onDone={({ amount, credits, date }) => {
+            const sale = {
               id: uid(),
               date,
               amount,
               note: "",
-              customer,
-              paid,
-              payments: [],
+              credits: credits.map((c) => ({ id: uid(), customer: c.customer, amount: c.amount, date, payments: [] })),
               createdAt: new Date().toISOString(),
-            });
+            };
+            if (!addSale(sale)) return false;
             setFlow(null);
-            const due = Math.max(0, amount - paid);
-            toast(
-              due > 0.004
-                ? "Sale saved · " + fmt(due) + " in credit" + (customer ? " for " + customer : "")
-                : "Sale saved · " + fmt(amount)
-            );
+            const cr = saleCreditTotal(sale);
+            logged(cr > 0.004 ? "Sale saved · " + fmt(cr) + " on credit" : "Sale saved");
+            return true;
           }}
         />
       )}
@@ -2150,22 +2252,21 @@ function VaultStackV3() {
             setPayCust(null);
           }}
           onDone={({ amount, date }) => {
-            const name = payCust.name;
+            const row = creditCustomers(state.sales).find((c) => custKey(c.name) === custKey(payCust.name));
+            if (!row || amount > row.owed + 0.004) return;
             let left = amount;
-            /* spread the payment across that customer's open sales, oldest first */
-            const targets = state.sales
-              .filter((x) => (x.customer || "").trim().toLowerCase() === name.toLowerCase())
-              .filter((x) => saleOutstanding(x) > 0.004)
-              .sort((a, b) => (a.date < b.date ? -1 : 1));
-            targets.forEach((t) => {
-              if (left <= 0.004) return;
-              const take = Math.min(left, saleOutstanding(t));
-              addRecordPayment(t.id, { id: uid(), date, amount: take });
-              left -= take;
-            });
+            /* spread the repayment across that customer's open credit, oldest first */
+            [...row.entries]
+              .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+              .forEach((t) => {
+                if (left <= 0.004) return;
+                const take = Math.min(left, t.owed);
+                addCreditPayment(t.saleId, t.creditId, { id: uid(), date, amount: take });
+                left -= take;
+              });
             setFlow(null);
             setPayCust(null);
-            toast("Payment saved · " + fmt(amount));
+            logged(row.owed - amount <= 0.004 ? payCust.name + " has paid in full" : "Repayment saved · " + fmt(amount));
           }}
         />
       )}
@@ -2258,7 +2359,7 @@ function VaultStackV3() {
           onSave={({ amount, date }) => {
             addExpense({ id: uid(), date, amount, category: expCat, createdAt: new Date().toISOString() });
             setExpSession((prev) => [...prev, { cat: expCat, amount }]);
-            toast(expCat + " saved · " + fmt(amount));
+            logged(expCat + " saved · " + fmt(amount));
             setFlow("expense-cat");
           }}
         />
@@ -2268,36 +2369,47 @@ function VaultStackV3() {
 }
 
 /* ---------------- sea conditions ---------------- */
+/* Live sea readings from Open-Meteo (free, no key). A reading is only used
+   if both services answer with real numbers. The last good reading is kept
+   with its time so the screen can show it, clearly dated, when offline. */
+const SEA_LAST_KEY = "vaultstack:sea:last";
 function useSea() {
   const [wx, setWx] = useState({ status: "loading" });
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     let alive = true;
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 6000);
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    setWx({ status: "loading" });
     (async () => {
       try {
         const [mr, fr] = await Promise.all([
-          fetch(
-            "https://marine-api.open-meteo.com/v1/marine?" + SEA_POINT + "&current=wave_height",
-            { signal: ctrl.signal }
-          ),
+          fetch("https://marine-api.open-meteo.com/v1/marine?" + SEA_POINT + "&current=wave_height", { signal: ctrl.signal, cache: "no-store" }),
           fetch(
             "https://api.open-meteo.com/v1/forecast?" + SEA_POINT + "&current=wind_speed_10m,precipitation&wind_speed_unit=kmh",
-            { signal: ctrl.signal }
+            { signal: ctrl.signal, cache: "no-store" }
           ),
         ]);
+        if (!mr.ok || !fr.ok) throw new Error("bad response");
         const mj = await mr.json();
         const fj = await fr.json();
+        const wave = mj.current && mj.current.wave_height;
+        const wind = fj.current && fj.current.wind_speed_10m;
+        const rain = fj.current && fj.current.precipitation;
+        if (![wave, wind, rain].every((v) => typeof v === "number" && isFinite(v))) throw new Error("missing reading");
         if (!alive) return;
-        setWx({
-          status: "live",
-          wave: mj.current?.wave_height ?? 0,
-          wind: fj.current?.wind_speed_10m ?? 0,
-          rain: fj.current?.precipitation ?? 0,
-        });
+        const reading = { wave, wind, rain, at: new Date().toISOString() };
+        try {
+          localStorage.setItem(SEA_LAST_KEY, JSON.stringify(reading));
+        } catch {}
+        setWx({ status: "live", ...reading });
       } catch {
         if (!alive) return;
-        setWx({ status: "demo", wave: 0.9, wind: 14, rain: 0 });
+        let last = null;
+        try {
+          last = JSON.parse(localStorage.getItem(SEA_LAST_KEY) || "null");
+        } catch {}
+        setWx({ status: "offline", last });
       } finally {
         clearTimeout(t);
       }
@@ -2307,12 +2419,14 @@ function useSea() {
       ctrl.abort();
       clearTimeout(t);
     };
-  }, []);
-  return wx;
+  }, [tick]);
+  return { ...wx, retry: () => setTick((n) => n + 1) };
 }
 
 function seaVerdict(wx) {
   if (!wx || wx.status === "loading") return { label: "CHECKING", col: NAVY, msg: "" };
+  /* never judge the sea without a live reading */
+  if (wx.status !== "live") return { label: "OFFLINE", col: MUTED, msg: "Can’t check the sea right now." };
   return wx.wave >= 2 || wx.wind >= 30
     ? { label: "STAY ASHORE", col: BAD, msg: "The sea is dangerous today. Do not go out." }
     : wx.wave >= 1.2 || wx.wind >= 20 || wx.rain >= 2
@@ -2323,8 +2437,9 @@ const SKY = {
   SAFE: "radial-gradient(circle at 82% 4%,rgba(255,255,255,.42),rgba(255,255,255,0) 30%),linear-gradient(180deg,#2466A8 0%,#3988CB 36%,#62ACDF 70%,#94CDEE 100%)",
   CAUTION: "radial-gradient(circle at 82% 4%,rgba(255,236,200,.35),rgba(255,255,255,0) 30%),linear-gradient(180deg,#3A5A82 0%,#5F82A8 40%,#A99A86 75%,#D9A566 100%)",
   "STAY ASHORE": "linear-gradient(180deg,#26303C 0%,#3B4755 40%,#55616E 75%,#6F7A85 100%)",
+  OFFLINE: "linear-gradient(180deg,#46505C 0%,#5E6975 45%,#7B8591 100%)",
 };
-const SKY_WORD = { SAFE: "Safe", CAUTION: "Caution", "STAY ASHORE": "Stay Ashore", CHECKING: "Checking" };
+const SKY_WORD = { SAFE: "Safe", CAUTION: "Caution", "STAY ASHORE": "Stay Ashore", CHECKING: "Checking", OFFLINE: "Offline" };
 /* where today's reading sits on the green-to-red go/no-go scale */
 function seaScalePos(wx) {
   if (!wx || wx.status === "loading") return 3;
@@ -2338,29 +2453,35 @@ function WeatherTabV2({ onBack }) {
   const wx = useSea();
   const verdict = seaVerdict(wx);
   const loading = wx.status === "loading";
-  const [checkedAt, setCheckedAt] = useState(null);
-  useEffect(() => {
-    if (!loading) setCheckedAt(new Date());
-  }, [wx.status]);
+  const live = wx.status === "live";
+  const offline = wx.status === "offline";
+  const last = offline ? wx.last : null;
+  const src = live ? wx : last;
+  const when = (iso) => {
+    const d = new Date(iso);
+    const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    return d.toDateString() === new Date().toDateString() ? "today " + time : fmtDate(iso.slice(0, 10)) + " " + time;
+  };
   const word = SKY_WORD[verdict.label] || "Checking";
   const bigSize = word.length <= 5 ? 96 : word.length <= 8 ? 80 : 60;
+  const val = (k) => (src && typeof src[k] === "number" ? src[k] : "–");
   const cards = [
-    { Icon: Wind, label: "Wind", value: loading ? "–" : wx.wind, unit: "km/h", foot: "Safe below 20 km/h" },
-    { Icon: Waves, label: "Waves", value: loading ? "–" : wx.wave, unit: "m", foot: "Safe below 1.2 m" },
-    { Icon: CloudRain, label: "Rain", value: loading ? "–" : wx.rain, unit: "mm", foot: loading ? "Checking…" : Number(wx.rain) > 0 ? "Rain right now" : "No rain right now" },
+    { Icon: Wind, label: "Wind", value: val("wind"), unit: src ? "km/h" : "", foot: "Safe below 20 km/h" },
+    { Icon: Waves, label: "Waves", value: val("wave"), unit: src ? "m" : "", foot: "Safe below 1.2 m" },
+    { Icon: CloudRain, label: "Rain", value: val("rain"), unit: src ? "mm" : "", foot: live ? (Number(wx.rain) > 0 ? "Rain right now" : "No rain right now") : "Heavy rain: 2 mm or more" },
     {
       Icon: Clock,
       label: "Checked",
-      value: checkedAt ? checkedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "–",
+      value: src && src.at ? new Date(src.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "–",
       unit: "",
-      foot: wx.status === "demo" ? "Offline · saved reading" : loading ? "Checking…" : "Live reading",
+      foot: live ? "Live reading" : loading ? "Checking…" : last ? "Old reading · " + when(last.at) : "No reading yet",
     },
   ];
   return (
     <div className="sky" style={{ background: SKY[verdict.label] || SKY.SAFE }}>
       <div className="navrow">
         <button className="gbtn glass-sky" onClick={onBack} aria-label="Back">
-          <ChevronLeft size={20} strokeWidth={2.6} />
+          <ChevronLeft size={20} />
         </button>
         <span />
       </div>
@@ -2371,40 +2492,50 @@ function WeatherTabV2({ onBack }) {
         <div style={{ fontSize: 34, fontWeight: 500, letterSpacing: "-.02em", marginTop: 2 }}>Adina</div>
         <div style={{ fontSize: bigSize, fontWeight: 250, letterSpacing: "-.05em", lineHeight: 1, marginTop: 4 }}>{word}</div>
         <div style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-.02em", marginTop: 10 }}>{verdict.msg || "Checking the sea…"}</div>
-        {!loading ? (
+        {live ? (
           <div className="num" style={{ fontSize: 17, fontWeight: 500, opacity: 0.85, marginTop: 3 }}>
             Wind {wx.wind} km/h · Waves {wx.wave} m
           </div>
         ) : null}
       </div>
       <div className="px" style={{ marginTop: 26 }}>
-        <div className="wc">
-          <div className="wh"><Flag size={13} strokeWidth={2.4} /> Go / No-Go</div>
-          <div style={{ height: 0.5, background: "rgba(255,255,255,.25)", margin: "9px 0 10px" }} />
-          <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: "-.02em" }}>
-            {loading ? "Checking the sea…" : verdict.label === "SAFE" ? "Inside safe limits" : verdict.label === "CAUTION" ? "Rough: go carefully or wait" : "Too dangerous today"}
+        {offline ? (
+          <div className="wc">
+            <div className="wh"><Flag size={13} /> No Live Reading</div>
+            <div style={{ height: 0.5, background: "rgba(255,255,255,.25)", margin: "9px 0 10px" }} />
+            <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: "-.02em" }}>No go / no-go advice without a live reading</div>
+            <div className="wf" style={{ marginTop: 6 }}>
+              {last
+                ? "The numbers below are from " + when(last.at) + ". The sea may have changed since then."
+                : "Connect to the internet to check wind, waves and rain at Adina."}
+            </div>
+            <div style={{ height: 12 }} />
+            <button className="btn vs-press" style={{ height: 44, fontSize: 15, background: "rgba(255,255,255,.9)", color: "#2B3440" }} onClick={wx.retry}>
+              Try Again
+            </button>
           </div>
-          <div className="scale"><i style={{ left: seaScalePos(wx) + "%" }} /></div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 500, opacity: 0.8, marginTop: 9 }}>
-            <span>Safe</span><span>Caution</span><span>Stay ashore</span>
+        ) : (
+          <div className="wc">
+            <div className="wh"><Flag size={13} /> Go / No-Go</div>
+            <div style={{ height: 0.5, background: "rgba(255,255,255,.25)", margin: "9px 0 10px" }} />
+            <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: "-.02em" }}>
+              {loading ? "Checking the sea…" : verdict.label === "SAFE" ? "Inside safe limits" : verdict.label === "CAUTION" ? "Rough: go carefully or wait" : "Too dangerous today"}
+            </div>
+            <div className="scale" style={{ opacity: loading ? 0.4 : 1 }}>{live ? <i style={{ left: seaScalePos(wx) + "%" }} /> : null}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 500, opacity: 0.8, marginTop: 9 }}>
+              <span>Safe</span><span>Caution</span><span>Stay ashore</span>
+            </div>
           </div>
-        </div>
-        <div className="wgrid">
+        )}
+        <div className="wgrid" style={{ opacity: offline ? 0.75 : 1 }}>
           {cards.map((c) => (
             <div key={c.label} className="wc">
-              <div className="wh"><c.Icon size={13} strokeWidth={2.4} /> {c.label}</div>
+              <div className="wh"><c.Icon size={13} /> {c.label}</div>
               <div className="wv num">{c.value}{c.unit ? <small>{c.unit}</small> : null}</div>
               <div className="wf">{c.foot}</div>
             </div>
           ))}
         </div>
-        {wx.status === "demo" ? (
-          <div className="wc" style={{ marginTop: 12 }}>
-            <div className="wf" style={{ marginTop: 0 }}>
-              <b>Offline.</b> These are the last saved conditions. Live readings return when the phone is back online.
-            </div>
-          </div>
-        ) : null}
       </div>
       <Spacer />
     </div>
@@ -2502,17 +2633,16 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp, o
           <div className="group">
             {recent.map((r) => {
               const sale = r.kind === "sale";
-              const cust = sale ? (r.customer || "").trim() : "";
-              const status = sale ? saleStatusLabel(r) : "";
+              const line = sale ? saleCreditLine(r) : null;
               return (
                 <Item key={r.id} onClick={() => go(sale ? "sales" : "expenses")}>
                   <RowBody
                     lead={<Sq Icon={sale ? Fish : catIcon(r.category)} color={sale ? "#34C759" : catColor(r.category)} />}
-                    title={sale ? cust || r.note || "Fish Sale" : r.category || "Expense"}
+                    title={sale ? r.note || "Fish Sale" : r.category || "Expense"}
                     sub={
                       sale ? (
                         <>
-                          {fmtDate(r.date)} · {status === "Paid" ? "Paid" : <span className="warn">{status === "Credit" ? "On credit" : "Part paid"}</span>}
+                          {fmtDate(r.date)} · {line.warn ? <span className="warn">{line.text}</span> : line.text}
                         </>
                       ) : (
                         fmtDate(r.date) + (r.note ? " · " + r.note : "")
@@ -2569,9 +2699,52 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp, o
   );
 }
 
+/* how a sale's credit reads in one line */
+function saleCreditLine(s) {
+  const given = saleCreditTotal(s);
+  const owed = saleOutstanding(s);
+  if (given <= 0.004) return { text: "Paid in cash", warn: false };
+  if (owed <= 0.004) return { text: "Credit repaid", warn: false };
+  return { text: fmtN(owed) + " owed", warn: true };
+}
+
+/* form for one customer's credit, used when logging a sale and on a saved sale */
+function CreditForm({ room, onAdd, addLabel = "Add to Credit" }) {
+  const [name, setName] = useState("");
+  const [amt, setAmt] = useState("");
+  const [err, setErr] = useState("");
+  const n = Number(amt) || 0;
+  const add = () => {
+    if (!name.trim()) return setErr("Enter the customer’s name.");
+    if (!(n > 0)) return setErr("Enter how much they took on credit.");
+    if (n > room + 0.004) return setErr("Credit can’t be more than the sale. Only " + fmt(room) + " is left.");
+    if (onAdd({ customer: name.trim(), amount: Math.round(n * 100) / 100 }) === false) {
+      return setErr("Credit can’t be more than the sale total.");
+    }
+    setName("");
+    setAmt("");
+    setErr("");
+  };
+  return (
+    <div>
+      <div className="group g2">
+        <FormRow label="Customer" value={name} onChange={(v) => { setName(v); setErr(""); }} placeholder="Ama" />
+        <FormRow label="On credit (GH₵)" value={amt} onChange={(v) => { setAmt(v.replace(/[^0-9.]/g, "")); setErr(""); }} placeholder="0" inputMode="decimal" />
+      </div>
+      <div className="kmsg" style={{ color: err ? C.red : C.sec, textAlign: "left", padding: "0 4px" }}>
+        {err || (room > 0.004 ? "Up to " + fmt(room) + " can go on credit." : "The whole sale is already on credit.")}
+      </div>
+      <div style={{ height: 8 }} />
+      <Btn label={<><Plus size={18} /> {addLabel}</>} kind="ghost" small disabled={room <= 0.004} onClick={add} />
+    </div>
+  );
+}
+
 /* ---------------- Sales ---------------- */
-function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCustomer, toast }) {
+function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCustomer, onAddCredit, logged, toast }) {
   const [del, setDel] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [view, setView] = useState("all");
   const sales = useMemo(
     () =>
       [...state.sales].sort((a, b) => {
@@ -2583,16 +2756,13 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
     [state.sales]
   );
   const credits = useMemo(() => creditCustomers(state.sales), [state.sales]);
-  const statusTone = (s) =>
-    saleStatusLabel(s) === "Paid" ? "good" : saleStatusLabel(s) === "Partly paid" ? "warn" : "bad";
-  const [view, setView] = useState("all");
+  const creditGiven = state.sales.reduce((s, x) => s + saleCreditTotal(x), 0);
+  const repaid = Math.max(0, creditGiven - fin.creditOutstanding);
   const shown = sales.filter((s) =>
     view === "all" ? true : view === "owed" ? saleOutstanding(s) > 0.004 : saleOutstanding(s) <= 0.004
   );
-  const statusText = (s) => {
-    const l = saleStatusLabel(s);
-    return l === "Paid" ? "Paid" : l === "Partly paid" ? "Part paid" : "On credit";
-  };
+  const open = openId ? state.sales.find((x) => x.id === openId) : null;
+  const customerRow = (name) => credits.find((c) => custKey(c.name) === custKey(name));
 
   return (
     <div>
@@ -2612,10 +2782,15 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
           />
           <Legend
             items={[
-              { label: "Received", color: C.green, value: fmtN(fin.cashReceived) },
-              { label: "Still owed", color: C.orange, value: fmtN(fin.creditOutstanding) },
+              { label: "Cash received", color: C.green, value: fmtN(fin.cashReceived) },
+              { label: "Credit still owed", color: C.orange, value: fmtN(fin.creditOutstanding) },
             ]}
           />
+          {creditGiven > 0.004 ? (
+            <div className="num" style={{ fontSize: 13, color: C.sec, marginTop: 10 }}>
+              Credit given {fmtN(creditGiven)} · repaid {fmtN(repaid)}
+            </div>
+          ) : null}
         </div>
 
         {view !== "paid" && credits.length > 0 ? (
@@ -2634,7 +2809,7 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
                       color: "#34C759",
                       onClick: () => {
                         onClearCustomer(c.name);
-                        toast(c.name + " marked as paid");
+                        logged(c.name + " has paid in full");
                       },
                     },
                   ]}
@@ -2642,11 +2817,7 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
                   <RowBody
                     lead={<Mono name={c.name} />}
                     title={c.name}
-                    sub={
-                      <>
-                        <span className="warn num">{fmt(c.owed)}</span> owed
-                      </>
-                    }
+                    sub={<><span className="warn num">{fmt(c.owed)}</span> owed</>}
                     right={
                       <button
                         className="get vs-press"
@@ -2662,18 +2833,18 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
                 </SwipeRow>
               ))}
             </div>
-            <div className="foot">Swipe left on a customer to mark everything they owe as paid.</div>
+            <div className="foot">Tap Record when a customer pays back. Swipe left to mark everything they owe as paid.</div>
           </div>
         ) : null}
 
-        <Head title={view === "owed" ? "Owed Sales" : view === "paid" ? "Paid Sales" : "Recent Sales"} />
+        <Head title={view === "owed" ? "Sales with Credit" : view === "paid" ? "Fully Paid Sales" : "Recent Sales"} />
         {shown.length === 0 ? (
           <div className="card empty">
             {sales.length === 0 ? (
               <>
                 No sales recorded yet.
                 <div style={{ height: 12 }} />
-                <Btn label={<><Plus size={18} strokeWidth={2.4} /> Log a Sale</>} small onClick={openSale} />
+                <Btn label={<><Plus size={18} /> Log a Sale</>} small onClick={openSale} />
               </>
             ) : view === "owed" ? (
               "Nobody owes you anything right now."
@@ -2684,36 +2855,111 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
         ) : (
           <div className="group">
             {shown.map((s) => {
-              const cust = (s.customer || "").trim();
-              const txt = statusText(s);
+              const line = saleCreditLine(s);
               return (
                 <SwipeRow
                   key={s.id}
-                  onTap={() => setDel(s)}
+                  onTap={() => setOpenId(s.id)}
                   actions={[{ label: "Delete", Icon: Trash2, color: "#FF3B30", onClick: () => setDel(s) }]}
                 >
                   <RowBody
                     lead={<Sq Icon={Fish} color="#34C759" />}
-                    title={cust ? cust : s.note ? s.note : "Fish Sale"}
-                    sub={<>{fmtDate(s.date)} · {txt === "Paid" ? "Paid" : <span className="warn">{txt}</span>}</>}
+                    title={s.note || "Fish Sale"}
+                    sub={<>{fmtDate(s.date)} · {line.warn ? <span className="warn">{line.text}</span> : line.text}</>}
                     right={<div className="am">{fmtN(s.amount)}</div>}
+                    chevron
                   />
                 </SwipeRow>
               );
             })}
           </div>
         )}
-        {shown.length > 0 ? <div className="foot">Swipe left on a sale to delete it.</div> : null}
+        {shown.length > 0 ? <div className="foot">Tap a sale to see or add its credit. Swipe left to delete it.</div> : null}
       </div>
       <Spacer />
 
+      {open && (
+        <Modal title={"Sale · " + fmtDate(open.date)} onClose={() => setOpenId(null)}>
+          <AmountBig value={String(open.amount)} />
+          <div className="lsub center" style={{ marginTop: 8 }}>{open.note || "Total for this landing"}</div>
+          <div className="group g2" style={{ marginTop: 18 }}>
+            <KV k="Total sale" v={fmtN(open.amount)} />
+            <KV k="Credit given" v={fmtN(saleCreditTotal(open))} />
+            <KV k="Credit still owed" v={fmtN(saleOutstanding(open))} color={saleOutstanding(open) > 0.004 ? C.orangeT : undefined} />
+            <KV k="Cash received" v={fmtN(salePaid(open))} strong />
+          </div>
+
+          {(open.credits || []).length > 0 ? (
+            <div>
+              <div className="sh" style={{ paddingTop: 22 }}><b style={{ fontSize: 20 }}>Credit on This Sale</b></div>
+              <div className="group g2">
+                {open.credits.map((c) => {
+                  const owed = creditOwed(c);
+                  const row = customerRow(c.customer);
+                  return (
+                    <Item key={c.id} inset={68}>
+                      <RowBody
+                        lead={<Mono name={c.customer} />}
+                        title={c.customer}
+                        sub={
+                          owed > 0.004 ? (
+                            <><span className="warn num">{fmt(owed)}</span> owed of {fmtN(c.amount)}</>
+                          ) : (
+                            <span style={{ color: C.greenT, fontWeight: 600 }}>Paid · {fmtN(c.amount)}</span>
+                          )
+                        }
+                        right={
+                          owed > 0.004 && row ? (
+                            <button
+                              className="get vs-press"
+                              onClick={() => {
+                                setOpenId(null);
+                                onRecordPayment(row);
+                              }}
+                            >
+                              Record
+                            </button>
+                          ) : (
+                            <Check size={20} color={C.greenT} />
+                          )
+                        }
+                      />
+                    </Item>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="sh" style={{ paddingTop: 22 }}><b style={{ fontSize: 20 }}>Add Credit</b></div>
+          <CreditForm
+            room={Math.max(0, open.amount - saleCreditTotal(open))}
+            addLabel="Add Credit to This Sale"
+            onAdd={(c) => {
+              const ok = onAddCredit(open.id, { id: uid(), customer: c.customer, amount: c.amount, date: open.date, payments: [] });
+              if (ok) logged("Credit added · " + c.customer + " · " + fmt(c.amount));
+              return ok;
+            }}
+          />
+          <div style={{ height: 22 }} />
+          <Btn
+            label={<><Trash2 size={18} /> Delete Sale</>}
+            kind="danger"
+            onClick={() => {
+              setDel(open);
+              setOpenId(null);
+            }}
+          />
+        </Modal>
+      )}
+
       {del && (
         <ConfirmRemove
-          title={(del.customer || "").trim() || del.note || "Fish Sale"}
+          title={del.note || "Fish Sale"}
           amount={fmt(del.amount)}
           lines={[
-            fmtDate(del.date) + " · " + statusText(del),
-            ...(saleOutstanding(del) > 0.004 ? [fmt(saleOutstanding(del)) + " still owed"] : []),
+            fmtDate(del.date) + " · " + saleCreditLine(del).text,
+            ...((del.credits || []).length ? ["Its credit entries and repayments are removed too."] : []),
           ]}
           confirmLabel="Delete Sale"
           onClose={() => setDel(null)}
@@ -2728,18 +2974,17 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
   );
 }
 
-/* -------- new sale: an Apple Cash-style amount sheet -------- */
+/* -------- new sale: one total, then the credit that is part of it -------- */
 function SaleSheet({ onClose, onDone }) {
+  const [stage, setStage] = useState("total");
   const [total, setTotal] = useState("");
-  const [cust, setCust] = useState("");
-  const [showCust, setShowCust] = useState(false);
-  const [mode, setMode] = useState("full");
-  const [part, setPart] = useState("");
   const [date, setDate] = useState(todayISO());
+  const [credits, setCredits] = useState([]);
+  const [err, setErr] = useState("");
 
   const amt = Number(total) || 0;
-  const paidAmt = mode === "full" ? amt : mode === "credit" ? 0 : Math.min(Number(part) || 0, amt);
-  const due = Math.max(0, amt - paidAmt);
+  const creditSum = credits.reduce((s, c) => s + c.amount, 0);
+  const room = Math.max(0, amt - creditSum);
   const pressKey = (k, setter) => {
     if (k === "del") return setter((v) => v.slice(0, -1));
     setter((v) => {
@@ -2751,45 +2996,72 @@ function SaleSheet({ onClose, onDone }) {
       return v + k;
     });
   };
+  const save = () => {
+    if (!creditsFit(amt, credits)) return setErr("Credit can’t be more than the sale total.");
+    if (onDone({ amount: amt, credits, date }) === false) setErr("This sale could not be saved. Check the credit.");
+  };
+
+  if (stage === "total")
+    return (
+      <Modal title="New Sale" onClose={onClose}>
+        <AmountBig value={total} />
+        <div className="lsub center" style={{ marginTop: 8 }}>Total value of all the fish sold</div>
+        <div className="chips">
+          <DateChip date={date} setDate={setDate} />
+        </div>
+        <div className="kmsg" style={{ color: C.sec }}>
+          {amt > 0 && creditSum > amt + 0.004 ? <span style={{ color: C.red }}>Less than the credit already added ({fmt(creditSum)})</span> : " "}
+        </div>
+        <Keypad onKey={(k) => pressKey(k, setTotal)} />
+        <div style={{ height: 10 }} />
+        <Btn label="Next" disabled={!amt || creditSum > amt + 0.004} onClick={() => setStage("credit")} />
+      </Modal>
+    );
 
   return (
     <Modal title="New Sale" onClose={onClose}>
-      <AmountBig value={total} />
-      <div className="lsub center" style={{ marginTop: 8 }}>Total for this landing</div>
-      <div className="chips">
-        <DateChip date={date} setDate={setDate} />
-        <button className={"chip" + (cust.trim() ? " on" : "")} onClick={() => setShowCust((v) => !v)}>
-          <PersonCircle size={17} strokeWidth={2} />
-          {cust.trim() ? cust.trim() : "Add Customer"}
-        </button>
+      <div className="group g2">
+        <KV k="Total sale" v={fmtN(amt)} strong />
+        <KV k="On credit" v={fmtN(creditSum)} color={creditSum > 0.004 ? C.orangeT : undefined} />
+        <KV k="Cash received now" v={fmtN(amt - creditSum)} />
       </div>
-      {showCust ? (
-        <div className="group g2" style={{ marginTop: 14 }}>
-          <FormRow label="Customer" value={cust} onChange={setCust} placeholder="Ama" autoFocus />
+      <div className="foot" style={{ paddingTop: 8 }}>
+        {fmtDate(date)} · <button className="link" style={{ fontSize: 13 }} onClick={() => setStage("total")}>Change total or date</button>
+      </div>
+
+      <div className="sh" style={{ paddingTop: 20 }}><b style={{ fontSize: 20 }}>Credit</b></div>
+      <div className="lsub" style={{ margin: "-4px 4px 12px", lineHeight: 1.4 }}>
+        Did any customers take part of this fish without paying? Add each one. Their credit is part of this sale, not extra.
+      </div>
+      {credits.length > 0 ? (
+        <div className="group g2" style={{ marginBottom: 12 }}>
+          {credits.map((c, i) => (
+            <div key={i} className="li vrow sm" style={{ "--inset": "16px" }}>
+              <div className="tx" style={{ fontSize: 17, letterSpacing: "-.02em" }}>{c.customer}</div>
+              <div className="am" style={{ color: C.orangeT }}>{fmtN(c.amount)}</div>
+              <button
+                className="gbtn sx vs-press"
+                style={{ width: 30, height: 30 }}
+                aria-label={"Remove " + c.customer}
+                onClick={() => setCredits((cs) => cs.filter((_, j) => j !== i))}
+              >
+                <XMark size={14} />
+              </button>
+            </div>
+          ))}
         </div>
       ) : null}
-      <div style={{ marginTop: 18 }}>
-        <Seg options={[["full", "Paid in Full"], ["part", "Part Paid"], ["credit", "On Credit"]]} value={mode} onChange={setMode} />
-      </div>
-      {mode === "part" ? (
-        <div className="group g2" style={{ marginTop: 12 }}>
-          <FormRow label="Cash received now" value={part} onChange={(v) => setPart(v.replace(/[^0-9.]/g, ""))} placeholder="0" inputMode="decimal" />
-        </div>
-      ) : null}
-      <div className="kmsg" style={{ color: due > 0.004 ? C.orangeT : C.sec }}>
-        {amt <= 0
-          ? " "
-          : due > 0.004
-          ? fmt(due) + " will be owed" + (cust.trim() ? " by " + cust.trim() : " · add a customer to track it")
-          : "Paid in full"}
-      </div>
-      <Keypad onKey={(k) => pressKey(k, setTotal)} />
-      <div style={{ height: 10 }} />
-      <Btn
-        label={"Save Sale" + (amt ? " · " + fmt(amt) : "")}
-        disabled={!amt}
-        onClick={() => onDone({ amount: amt, customer: cust.trim(), paid: paidAmt, date })}
+      <CreditForm
+        room={room}
+        onAdd={(c) => {
+          if (!creditsFit(amt, [...credits, c])) return false;
+          setCredits((cs) => [...cs, c]);
+          setErr("");
+          return true;
+        }}
       />
+      <div className="kmsg" style={{ color: C.red }}>{err || " "}</div>
+      <Btn label={"Save Sale · " + fmt(amt)} disabled={!amt} onClick={save} />
     </Modal>
   );
 }
@@ -3163,6 +3435,7 @@ function WorkersTabV2({
   removePayment,
   removeAdjustment,
   toast,
+  logged,
 }) {
   const [openId, setOpenId] = useState(null);
   const [sub, setSub] = useState(null);
@@ -3368,7 +3641,7 @@ function WorkersTabV2({
           onSave={({ amount, date }) => {
             addLoan(w.id, { id: uid(), date, amount, note: "" });
             setSub(null);
-            toast("Loan saved · " + fmt(amount));
+            logged("Loan saved · " + fmt(amount));
           }}
         />
       )}
@@ -3445,7 +3718,7 @@ function WorkersTabV2({
               desc: payDesc,
             });
             setSub(null);
-            toast("Payment saved · " + fmt(amount));
+            logged("Payment saved · " + fmt(amount));
           }}
         />
       )}
@@ -3495,7 +3768,7 @@ function WorkersTabV2({
           onSave={({ amount, date }) => {
             addAdjustment(w.id, { id: uid(), date, kind: adjKind, amount, reason: adjReason });
             setSub(null);
-            toast((adjKind === "bonus" ? "Bonus saved · " : "Deduction saved · ") + fmt(amount));
+            logged((adjKind === "bonus" ? "Bonus saved · " : "Deduction saved · ") + fmt(amount));
           }}
         />
       )}
@@ -3599,16 +3872,28 @@ function KeypadSheet({
 }
 
 
-/* -------- credit sales: what customers still owe --------
-   A sale records the total and the cash taken at the time.
-   Anything not paid sits in Credit until the customer settles. */
-function salePaid(sale) {
-  const atSale = Number(sale.paid) || 0;
-  const after = (sale.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  return atSale + after;
+/* -------- credit: a breakdown of part of a sale, never an extra sale --------
+   sale.amount          the one total for the fish sold
+   sale.credits[]       customers who took part of it without paying
+   credit.payments[]    that customer's repayments
+   Outstanding credit = credit given − repayments
+   Cash received      = sale total − outstanding credit */
+const sumAmounts = (xs) => (xs || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+function creditRepaid(c) {
+  return sumAmounts(c.payments);
+}
+function creditOwed(c) {
+  return Math.max(0, (Number(c.amount) || 0) - creditRepaid(c));
+}
+function saleCreditTotal(sale) {
+  return sumAmounts(sale.credits);
 }
 function saleOutstanding(sale) {
-  return Math.max(0, (Number(sale.amount) || 0) - salePaid(sale));
+  return (sale.credits || []).reduce((s, c) => s + creditOwed(c), 0);
+}
+/* cash received for this sale so far */
+function salePaid(sale) {
+  return Math.max(0, (Number(sale.amount) || 0) - saleOutstanding(sale));
 }
 function saleStatusLabel(sale) {
   const due = saleOutstanding(sale);
@@ -3616,17 +3901,29 @@ function saleStatusLabel(sale) {
   if (salePaid(sale) > 0) return "Partly paid";
   return "Credit";
 }
+/* the rule: credit on a sale can never be more than the sale itself */
+function creditsFit(amount, credits) {
+  const total = Number(amount) || 0;
+  if (!(total > 0)) return false;
+  if ((credits || []).some((c) => !(Number(c.amount) > 0) || !(c.customer || "").trim())) return false;
+  return sumAmounts(credits) <= total + 0.004;
+}
+const custKey = (name) => (name || "").trim().toLowerCase();
+/* everyone who still owes, across all sales */
 function creditCustomers(sales) {
   const map = {};
   (sales || []).forEach((s) => {
-    const due = saleOutstanding(s);
-    if (due <= 0.004) return;
-    const name = (s.customer || "").trim() || "Unknown customer";
-    const row = map[name] || (map[name] = { name, owed: 0, orig: 0, paid: 0, sales: [] });
-    row.owed += due;
-    row.orig += Number(s.amount) || 0;
-    row.paid += salePaid(s);
-    row.sales.push(s);
+    (s.credits || []).forEach((c) => {
+      const due = creditOwed(c);
+      if (due <= 0.004) return;
+      const k = custKey(c.customer) || "unknown customer";
+      const row = map[k] || (map[k] = { name: (c.customer || "").trim() || "Unknown customer", owed: 0, orig: 0, paid: 0, sales: [], entries: [] });
+      row.owed += due;
+      row.orig += Number(c.amount) || 0;
+      row.paid += creditRepaid(c);
+      if (!row.sales.includes(s)) row.sales.push(s);
+      row.entries.push({ saleId: s.id, creditId: c.id, date: s.date, owed: due });
+    });
   });
   return Object.values(map).sort((a, b) => b.owed - a.owed);
 }
