@@ -159,7 +159,9 @@ const BAD = "#B3382A";
 const SEA = "#0E6E9E";
 const GOLD = "#A9791D";
 const LIME = "#7BE0F0";       /* the single accent — over deep blue, or as a fill */
-const PLATE = "#EEF2F5";      /* neutral fill — icon plates, keypad keys, quiet buttons */
+const PLATE = "#EEF2F5";
+const HERO = "#0B4A6F";       /* sea-blue header band */
+const HERO_DEEP = "#073752";  /* inset panels and bottom bar on the band */      /* neutral fill — icon plates, keypad keys, quiet buttons */
 const baseFont =
   '"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 const STORE_KEY = "vaultstack:app:v2"; /* bumped: new shape */
@@ -566,7 +568,7 @@ function Card2({ children, pad = 14, style = {}, onClick }) {
       style={{
         background: "#fff",
         border: "1px solid " + LINE,
-        borderRadius: 12,
+        borderRadius: 16,
         padding: pad,
         marginBottom: 12,
         cursor: onClick ? "pointer" : undefined,
@@ -784,51 +786,93 @@ function SectionHead({ text, action, onAction }) {
   );
 }
 
-/* the one headline figure per screen: label, amount, a few supporting lines, optional action */
-function Summary({ label, value, valueColor, sub, lines = [], note, noteColor, action, flat = false }) {
+/* sea-blue header band: greeting / title row, the headline figure centred,
+   bright pill actions, and an inset panel of supporting figures */
+function HeroBand({ top, label, value, sub, note, actions = [], statsTitle, stats = [] }) {
   return (
     <div
       style={{
-        background: flat ? MIST : "#fff",
-        border: flat ? "none" : "1px solid " + LINE,
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
+        background: HERO,
+        color: "#fff",
+        padding: "16px 16px 18px",
+        borderRadius: "0 0 24px 24px",
+        marginBottom: 16,
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 500, color: MUTED }}>{label}</div>
-      <div
-        className="num"
-        style={{ fontSize: 30, fontWeight: 700, color: valueColor || INK, letterSpacing: -0.6, lineHeight: 1.2, marginTop: 4 }}
-      >
-        {value}
+      {top}
+      <div style={{ textAlign: "center", marginTop: 18 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: LIME }}>{label}</div>
+        <div className="num" style={{ fontSize: 32, fontWeight: 700, letterSpacing: -0.6, lineHeight: 1.2, marginTop: 4 }}>
+          {value}
+        </div>
+        {sub ? <div className="truncate" style={{ fontSize: 13, color: "rgba(255,255,255,0.68)", marginTop: 4 }}>{sub}</div> : null}
+        {note ? <div style={{ fontSize: 13, color: "#FFC9BB", marginTop: 6, lineHeight: 1.4 }}>{note}</div> : null}
       </div>
-      {sub ? <div className="truncate" style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>{sub}</div> : null}
-      {lines.length > 0 ? (
-        <div style={{ display: "flex", marginTop: 14, paddingTop: 12, borderTop: "1px solid " + LINE }}>
-          {lines.map((l, i) => (
-            <div
-              key={l.label}
+      {actions.length > 0 ? (
+        <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 16 }}>
+          {actions.map((a) => (
+            <button
+              key={a.label}
+              className="vs-press"
+              onClick={a.onClick}
               style={{
-                flex: 1,
-                minWidth: 0,
-                paddingLeft: i === 0 ? 0 : 12,
-                marginLeft: i === 0 ? 0 : 12,
-                borderLeft: i === 0 ? "none" : "1px solid " + LINE,
+                flex: actions.length > 1 ? 1 : "0 1 220px",
+                maxWidth: 170,
+                height: 44,
+                border: "none",
+                borderRadius: 12,
+                background: LIME,
+                color: HERO_DEEP,
+                fontSize: 15,
+                fontWeight: 600,
+                fontFamily: baseFont,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
               }}
             >
-              <div className="truncate" style={{ fontSize: 12, color: MUTED }}>{l.label}</div>
-              <div className="num truncate" style={{ fontSize: 15, fontWeight: 600, color: l.color || INK, marginTop: 2 }}>
-                {l.value}
-              </div>
-            </div>
+              {a.Icon ? <a.Icon size={17} strokeWidth={2.4} /> : null}
+              {a.label}
+            </button>
           ))}
         </div>
       ) : null}
-      {note ? (
-        <div style={{ fontSize: 13, color: noteColor || MUTED, marginTop: 10, lineHeight: 1.45 }}>{note}</div>
+      {stats.length > 0 ? (
+        <div style={{ background: HERO_DEEP, borderRadius: 16, padding: "12px 14px", marginTop: 18 }}>
+          {statsTitle ? <div style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.8)", marginBottom: 10 }}>{statsTitle}</div> : null}
+          <div style={{ display: "flex", gap: 8 }}>
+            {stats.map((st) => (
+              <div
+                key={st.label}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: "1px solid rgba(123,224,240,0.35)",
+                  borderRadius: 12,
+                  padding: "8px 10px",
+                }}
+              >
+                <div className="truncate" style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>{st.label}</div>
+                <div className="num truncate" style={{ fontSize: 15, fontWeight: 600, color: st.color || "#fff", marginTop: 2 }}>
+                  {st.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : null}
-      {action ? <div style={{ marginTop: 14 }}>{action}</div> : null}
+    </div>
+  );
+}
+
+/* the plain title row used on the band for Sales, Expenses and Workers */
+function BandTitle({ title, sub }) {
+  return (
+    <div className="truncate">
+      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.3 }}>{title}</div>
+      {sub ? <div className="truncate" style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>{sub}</div> : null}
     </div>
   );
 }
@@ -851,9 +895,9 @@ function ListRow({ Icon, iconColor, iconBg, title, sub, amount, amountTone, badg
     >
       <div
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
+          width: 40,
+          height: 40,
+          borderRadius: 999,
           background: iconBg || PLATE,
           display: "flex",
           alignItems: "center",
@@ -1812,8 +1856,8 @@ function VaultStackV3() {
         </div>
       )}
 
-      <div style={{ background: "#fff", borderTop: "1px solid " + LINE, flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <div style={{ display: "flex", alignItems: "stretch", padding: "6px 4px 6px" }}>
+      <div style={{ background: HERO_DEEP, borderRadius: "20px 20px 0 0", flexShrink: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div style={{ display: "flex", alignItems: "stretch", padding: "8px 4px 8px" }}>
           {tabs.map(({ id, Icon, label }) => {
             const on = tab === id;
             return (
@@ -1840,12 +1884,24 @@ function VaultStackV3() {
                 }}
                 aria-current={on ? "page" : undefined}
               >
-                <Icon size={21} strokeWidth={on ? 2.2 : 1.8} color={on ? NAVY : "#7A8791"} />
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 44,
+                    height: 28,
+                    borderRadius: 999,
+                    background: on ? "rgba(123,224,240,0.18)" : "transparent",
+                  }}
+                >
+                  <Icon size={20} strokeWidth={on ? 2.2 : 1.8} color={on ? LIME : "rgba(255,255,255,0.62)"} />
+                </span>
                 <span
                   style={{
                     fontSize: 11,
                     fontWeight: on ? 600 : 500,
-                    color: on ? NAVY : "#7A8791",
+                    color: on ? LIME : "rgba(255,255,255,0.62)",
                     fontFamily: baseFont,
                   }}
                 >
@@ -2141,46 +2197,142 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
-      <PageHead
-        title="Home"
-        sub={first ? "Woezor, " + first + " \u00b7 " + today : today}
-        right={
-          onLock ? (
-            <IconBtn onClick={onLock} label="Lock VaultStack">
-              <Lock size={14} /> Lock
-            </IconBtn>
-          ) : null
+      {/* ---- the season's position: the one figure a skipper opens the app for ---- */}
+      <HeroBand
+        top={
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.14)",
+                  border: "1.5px solid " + LIME,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
+                {(owner || state.company.name || "?").split(/\s+/).slice(0, 2).map((x) => x[0] || "").join("").toUpperCase()}
+              </div>
+              <div className="truncate">
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.72)" }}>{first ? "Woezor," : today}</div>
+                <div className="truncate" style={{ fontSize: 16, fontWeight: 600 }}>{first || state.company.name}</div>
+              </div>
+            </div>
+            {onLock ? (
+              <button
+                className="vs-press"
+                onClick={onLock}
+                aria-label="Lock VaultStack"
+                title="Lock VaultStack"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  border: "none",
+                  background: LIME,
+                  color: HERO_DEEP,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                <Lock size={18} strokeWidth={2.2} />
+              </button>
+            ) : null}
+          </div>
         }
+        label="Money in the pot"
+        value={fmt(fin.netPot)}
+        sub={(state.season.name || "This season") + " \u00b7 since " + fmtDate(state.season.start)}
+        note={fin.netPot < 0 ? "Costs are ahead of sales. Shares stay at GH₵ 0 until the pot recovers." : null}
+        actions={[
+          { label: "Log sale", Icon: Plus, onClick: openSale },
+          { label: "Log expense", Icon: Minus, onClick: openExpense },
+        ]}
+        statsTitle="This season"
+        stats={[
+          { label: "Each unit is worth", value: fmt(fin.vpu) },
+          { label: "Crew payout today", value: fmt(toPayOut) },
+        ]}
       />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "0 16px" }}>
-        {/* ---- the season's position: the one figure a skipper opens the app for ---- */}
-        <Summary
-          label="Money in the pot"
-          value={fmt(fin.netPot)}
-          valueColor={fin.netPot < 0 ? BAD : INK}
-          sub={(state.season.name || "This season") + " \u00b7 since " + fmtDate(state.season.start)}
-          note={fin.netPot < 0 ? "Costs are ahead of sales. Shares stay at GH₵ 0 until the pot recovers." : null}
-          noteColor={BAD}
-          lines={[
-            { label: "Each unit is worth", value: fmt(fin.vpu) },
-            { label: "Crew payout today", value: fmt(toPayOut) },
-          ]}
-        />
+        {/* ---- shortcuts to the other books ---- */}
+        <Card pad="14px 8px">
+          <div style={{ display: "flex" }}>
+            {[
+              { label: "Sales", Icon: Banknote, col: GOOD, bg: "#E6F3EB", to: "sales" },
+              { label: "Expenses", Icon: Package, col: BAD, bg: "#F9E9E6", to: "expenses" },
+              { label: "Workers", Icon: Users, col: SEA, bg: SOFT, to: "workers" },
+              { label: "Sea", Icon: Waves, col: GOLD, bg: "#F8F0E0", to: "weather" },
+            ].map((q) => (
+              <button
+                key={q.label}
+                className="vs-press"
+                onClick={() => go(q.to)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                  fontFamily: baseFont,
+                }}
+              >
+                <span
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 999,
+                    background: q.bg,
+                    border: "1.5px solid " + q.col,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <q.Icon size={22} color={q.col} />
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: INK }}>{q.label}</span>
+              </button>
+            ))}
+          </div>
+        </Card>
 
         {/* ---- a little recent activity, only when there is some ---- */}
         {recent.length > 0 ? (
           <div>
-            <SectionHead text="Recent" action="See all" onAction={() => go("sales")} />
             <Card pad={0} style={{ overflow: "hidden" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "14px 14px 4px" }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: INK }}>Recent transactions</div>
+                <button
+                  onClick={() => go("sales")}
+                  style={{ border: "none", background: "none", padding: 0, fontSize: 14, fontWeight: 600, color: SEA, cursor: "pointer" }}
+                >
+                  See all
+                </button>
+              </div>
               {recent.map((r, i) => {
                 const Icon = r.kind === "sale" ? Fish : catIcon(r.category);
                 return (
                   <ListRow
                     key={r.id}
                     Icon={Icon}
-                    iconColor={r.kind === "sale" ? SEA : MUTED}
-                    iconBg={r.kind === "sale" ? SOFT : PLATE}
+                    iconColor={r.kind === "sale" ? GOOD : BAD}
+                    iconBg={r.kind === "sale" ? "#E6F3EB" : "#F9E9E6"}
                     title={r.kind === "sale" ? "Fish sale" : r.category || "Expense"}
                     sub={fmtDate(r.date) + (r.note ? " · " + r.note : "")}
                     amount={(r.kind === "sale" ? "+ " : "− ") + fmt(r.amount)}
@@ -2194,16 +2346,8 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp })
           </div>
         ) : null}
 
-        {/* ---- the two things you actually come here to do ---- */}
-        <div style={{ marginTop: "auto", paddingTop: 16 }}>
-          <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Btn label={<><Plus size={18} /> Log sale</>} kind="primary" onClick={openSale} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Btn label={<><Minus size={18} /> Log expense</>} kind="ghost" onClick={openExpense} />
-            </div>
-          </div>
+        {/* ---- save status ---- */}
+        <div style={{ marginTop: "auto", paddingTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: saveStamp === "error" ? BAD : MUTED, padding: "12px 0 16px" }}>
             <span style={{ width: 6, height: 6, borderRadius: 99, background: saveStamp === "error" ? BAD : saveStamp === "saving" ? "#B9C5CF" : GOOD }} />
             {savedText}
@@ -2233,24 +2377,22 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
 
   return (
     <div>
-      <PageHead
-        title="Sales"
-        sub={(state.season.name || "This season") + " · " + sales.length + (sales.length === 1 ? " landing" : " landings")}
+      <HeroBand
+        top={
+          <BandTitle
+            title="Sales"
+            sub={(state.season.name || "This season") + " · " + sales.length + (sales.length === 1 ? " landing" : " landings")}
+          />
+        }
+        label="Total fish sales"
+        value={fmt(fin.grossSales)}
+        actions={[{ label: "Log sale", Icon: Plus, onClick: openSale }]}
+        stats={[
+          { label: "Cash received", value: fmt(fin.cashReceived) },
+          { label: "Credit outstanding", value: fmt(fin.creditOutstanding), color: fin.creditOutstanding > 0 ? "#FFD9A8" : "#fff" },
+        ]}
       />
       <div style={{ padding: "0 16px" }}>
-        <Summary
-          label="Total fish sales"
-          value={fmt(fin.grossSales)}
-          lines={[
-            { label: "Cash received", value: fmt(fin.cashReceived) },
-            {
-              label: "Credit outstanding",
-              value: fmt(fin.creditOutstanding),
-              color: fin.creditOutstanding > 0 ? WARN : INK,
-            },
-          ]}
-          action={<Btn label={<><Plus size={18} /> Log sale</>} onClick={openSale} />}
-        />
 
         {credits.length > 0 ? (
           <div>
@@ -2319,8 +2461,8 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
                 <ListRow
                   key={s.id}
                   Icon={Fish}
-                  iconColor={SEA}
-                  iconBg={SOFT}
+                  iconColor={GOOD}
+                  iconBg="#E6F3EB"
                   title={cust ? cust : s.note ? s.note : "Fish sale"}
                   sub={fmtDate(s.date) + (due > 0 ? " · " + fmt(due) + " still owed" : "")}
                   amount={"+ " + fmt(s.amount)}
@@ -2649,20 +2791,22 @@ function ExpensesTab({ state, fin, openExpense, removeExpense, toast }) {
 
   return (
     <div>
-      <PageHead
-        title="Expenses"
-        sub={(state.season.name || "This season") + " · " + (state.expenses.length + state.season.fixed.length) + " entries"}
+      <HeroBand
+        top={
+          <BandTitle
+            title="Expenses"
+            sub={(state.season.name || "This season") + " · " + (state.expenses.length + state.season.fixed.length) + " entries"}
+          />
+        }
+        label="Total spent this season"
+        value={fmt(total)}
+        actions={[{ label: "Log expense", Icon: Minus, onClick: openExpense }]}
+        stats={[
+          { label: "Fixed costs", value: fmt(fin.fixedTotal) },
+          { label: "Trip costs", value: fmt(fin.varTotal) },
+        ]}
       />
       <div style={{ padding: "0 16px" }}>
-        <Summary
-          label="Total spent this season"
-          value={fmt(total)}
-          lines={[
-            { label: "Fixed costs", value: fmt(fin.fixedTotal) },
-            { label: "Trip costs", value: fmt(fin.varTotal) },
-          ]}
-          action={<Btn label={<><Minus size={18} /> Log expense</>} onClick={openExpense} />}
-        />
 
         {state.season.fixed.length > 0 ? (
           <div>
@@ -3087,19 +3231,16 @@ function WorkersTabV2({
 
   return (
     <div>
-      <PageHead
-        title="Workers"
-        sub={state.workers.length + " in the crew · " + fin.totalUnits + " share units"}
+      <HeroBand
+        top={<BandTitle title="Workers" sub={state.workers.length + " in the crew · " + fin.totalUnits + " share units"} />}
+        label="To pay out if the season closed today"
+        value={fmt(crewTotal)}
+        stats={[
+          { label: "Owing to the boat", value: fmt(crewDebt), color: crewDebt > 0 ? "#FFC9BB" : "#fff" },
+          { label: "Each unit", value: fmt(fin.vpu) },
+        ]}
       />
       <div style={{ padding: "0 16px" }}>
-        <Summary
-          label="To pay out if the season closed today"
-          value={fmt(crewTotal)}
-          lines={[
-            { label: "Owing to the boat", value: fmt(crewDebt), color: crewDebt > 0 ? BAD : INK },
-            { label: "Each unit", value: fmt(fin.vpu) },
-          ]}
-        />
 
         <SectionHead text="Crew list" />
         {state.workers.length === 0 ? (
