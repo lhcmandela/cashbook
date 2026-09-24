@@ -276,6 +276,38 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 .bottom-actions{margin-top:auto;padding-top:28px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 22px)}
 .prog{height:4px;border-radius:2px;background:var(--fill);margin-top:14px;overflow:hidden}.prog i{display:block;height:100%;background:var(--tint);border-radius:2px;transition:width .3s}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+/* records: summary, history, warnings */
+.plainlink{display:flex;align-items:center;justify-content:center;gap:7px;height:48px;border-radius:14px;color:var(--tint);font-size:17px;font-weight:500;letter-spacing:-.02em;text-decoration:none}
+.btnlink{display:block;text-decoration:none;margin-bottom:8px}
+.banner{display:flex;gap:12px;align-items:flex-start;background:var(--card);border-radius:22px;padding:14px 16px;margin:0 0 14px;box-shadow:inset 0 0 0 1.5px rgba(255,59,48,.35)}
+.banner .bt{font-size:16px;font-weight:600;letter-spacing:-.02em}
+.banner .bs{font-size:14px;color:var(--sec);line-height:1.4;margin-top:2px}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px;margin-left:6px;vertical-align:1px;letter-spacing:0}
+.badge.crew{background:var(--tint-soft);color:var(--tint)}
+.badge.late{background:rgba(255,149,0,.16);color:var(--orange-t)}
+.badge.del{background:rgba(255,59,48,.13);color:var(--red)}
+.code{font-family:ui-monospace,Menlo,monospace;font-weight:600;letter-spacing:.04em}
+.rolepill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--tint);background:var(--tint-soft);border-radius:13px;padding:4px 10px}
+.pinwrap{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;justify-content:center}
+.pinwrap>div{width:100%;max-width:430px;position:relative}
+.print-only{display:none}
+@media print{
+  @page{size:A4;margin:14mm}
+  html,body{height:auto!important;overflow:visible!important;background:#fff!important}
+  body>*:not(.print-only){display:none!important}
+  .print-only{display:block!important;color:#000;font:11pt/1.45 -apple-system,"Helvetica Neue",Arial,sans-serif}
+  .print-only h1{font-size:20pt;margin:0 0 2pt;letter-spacing:-.02em}
+  .print-only h2{font-size:12pt;margin:14pt 0 4pt;border-bottom:1.5pt solid #000;padding-bottom:2pt}
+  .print-only table{width:100%;border-collapse:collapse}
+  .print-only td{padding:3pt 0;border-bottom:.5pt solid #bbb;vertical-align:top}
+  .print-only td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .print-only tr.t td{font-weight:700;border-bottom:none}
+  .print-only .pcode{margin-top:16pt;border:1.5pt solid #000;border-radius:6pt;padding:8pt 12pt;display:flex;justify-content:space-between;align-items:center}
+  .print-only .pcode b{font:700 16pt ui-monospace,Menlo,monospace;letter-spacing:.06em}
+  .print-only .sig{display:flex;gap:24pt;margin-top:28pt}
+  .print-only .sig div{flex:1;border-top:.75pt solid #000;padding-top:4pt;font-size:9.5pt}
+  .print-only .small{font-size:9pt;color:#444}
+}
 </style>
 </head>
 <body>
@@ -372,6 +404,12 @@ function ShareUp(p){return <IconBase {...p}><path d="M12 14.5V3.5M8 7.3l4-3.8 4 
 function Trash2(p){return <IconBase {...p}><path d="M4.5 6.5h15M9.5 6.5V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v1.5M6.5 6.5l.8 12.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8l.8-12.2"/></IconBase>;}
 function Copy(p){return <IconBase {...p}><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></IconBase>;}
 function MessageCircle(p){return <IconBase {...p}><path d="M12 3.5c4.7 0 8.5 3.4 8.5 7.6s-3.8 7.6-8.5 7.6a9.6 9.6 0 0 1-2.9-.4L4.5 20l1.2-3.7a7.2 7.2 0 0 1-2.2-5.2c0-4.2 3.8-7.6 8.5-7.6Z"/></IconBase>;}
+function Printer(p){return <IconBase {...p}><path d="M7 8.5V3.5h10v5"/><rect x="3.5" y="8.5" width="17" height="8.5" rx="2.5"/><path d="M7 14h10v6.5H7z"/></IconBase>;}
+function DocText(p){return <IconBase {...p}><path d="M6.5 3h7.5l4.5 4.5V19a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M13.5 3v5h5M8.5 12.5h7M8.5 16.5h7"/></IconBase>;}
+function ShieldCheck(p){return <IconBase {...p}><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6z"/><path d="m8.8 12 2.3 2.3 4.3-4.6"/></IconBase>;}
+function Bell(p){return <IconBase {...p}><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 21h4"/></IconBase>;}
+function Warn(p){return <IconBase {...p}><path d="M10.3 4.2 2.8 17.5A2 2 0 0 0 4.5 20.5h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/><path d="M12 9.5v4.5M12 17.2v.1"/></IconBase>;}
+function KeyIcon(p){return <IconBase {...p}><circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8.3-8.3M16.5 6.5l2.5 2.5M14 9l2 2"/></IconBase>;}
 function Calendar(p){return <IconBase {...p}><rect x="3.5" y="5" width="17" height="15.5" rx="2.8"/><path d="M3.5 9.8h17M8 3v4M16 3v4"/></IconBase>;}
 function PersonCircle(p){return <IconBase {...p}><circle cx="12" cy="12" r="8.8"/><circle cx="12" cy="10" r="3"/><path d="M6.6 18a6.2 6.2 0 0 1 10.8 0"/></IconBase>;}
 function Star(p){return <IconBase {...p}><path d="m12 3.8 2.5 5.1 5.6.8-4 4 .9 5.6-5-2.7-5 2.7.9-5.6-4-4 5.6-.8Z"/></IconBase>;}
@@ -465,6 +503,113 @@ async function wipeSaved() {
   } catch {}
 }
 
+/* ================= audit trail =================
+   Every change to the books is written to state.audit as one line that is
+   chained to the line before it with a fingerprint (SHA-256). Deleting an
+   entry moves it to state.voided instead of erasing it. The whole saved
+   book is also sealed with a fingerprint on every save, so an edit made
+   outside the app (for example in the browser's storage) is detected on
+   the next open. This makes changes visible; it cannot stop someone who
+   has the phone and the owner PIN, which is why daily summaries leave the
+   phone. */
+function sha256Hex(str) {
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const bytes = new TextEncoder().encode(str);
+  const l = bytes.length;
+  const withPad = new Uint8Array(((l + 9 + 63) >> 6) << 6);
+  withPad.set(bytes);
+  withPad[l] = 0x80;
+  const dv = new DataView(withPad.buffer);
+  dv.setUint32(withPad.length - 4, (l * 8) >>> 0);
+  dv.setUint32(withPad.length - 8, Math.floor((l * 8) / 4294967296));
+  let h = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+  const w = new Uint32Array(64);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let i = 0; i < withPad.length; i += 64) {
+    for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4);
+    for (let t = 16; t < 64; t++) {
+      const s0 = rotr(w[t - 15], 7) ^ rotr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
+      const s1 = rotr(w[t - 2], 17) ^ rotr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, hh] = h;
+    for (let t = 0; t < 64; t++) {
+      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const t1 = (hh + S1 + ((e & f) ^ (~e & g)) + K[t] + w[t]) >>> 0;
+      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    h = [h[0] + a, h[1] + b, h[2] + c, h[3] + d, h[4] + e, h[5] + f, h[6] + g, h[7] + hh].map((x) => x >>> 0);
+  }
+  return h.map((x) => x.toString(16).padStart(8, "0")).join("");
+}
+/* the same data always gives the same text, whatever order keys were added in */
+function stableStringify(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map((x) => (x === undefined ? "null" : stableStringify(x))).join(",") + "]";
+  return "{" + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ":" + stableStringify(v[k])).join(",") + "}";
+}
+function auditHash(entry) {
+  const { hash, ...rest } = entry;
+  return sha256Hex(stableStringify(rest)).slice(0, 24);
+}
+/* add one line to the audit trail, chained to the previous line */
+function appendAudit(st, e) {
+  const log = st.audit || [];
+  const entry = {
+    id: uid(),
+    at: new Date().toISOString(),
+    who: e.who || "owner",
+    action: e.action,
+    text: e.text,
+    amount: e.amount == null ? null : Number(e.amount) || 0,
+    date: e.date || todayISO(),
+    /* only changes to the figures count as "after the day was closed" */
+    late: !["security", "close", "accept", "season"].includes(e.action) && !!(st.closedDays && e.date && st.closedDays[e.date]),
+    prev: log.length ? log[log.length - 1].hash : "start",
+    ...(e.skip && e.skip.length ? { skip: e.skip } : {}),
+  };
+  entry.hash = auditHash(entry);
+  return { ...st, audit: [...log, entry] };
+}
+/* true when every line still matches its fingerprint and links to the one before */
+/* ids of lines that no longer match their fingerprint or no longer link to the line before */
+function auditProblems(log) {
+  const bad = [];
+  let prev = "start";
+  for (const e of log || []) {
+    if (e.prev !== prev || auditHash(e) !== e.hash) bad.push(e.id);
+    prev = e.hash;
+  }
+  return bad;
+}
+/* true when every line checks out. After a warning the owner can accept the
+   books as they are: the "accept" line lists the lines that were already
+   broken, and only those are forgiven. Any other edit is still caught. */
+function auditIntact(log) {
+  const forgiven = new Set();
+  (log || []).forEach((e) => e.action === "accept" && (e.skip || []).forEach((id) => forgiven.add(id)));
+  return auditProblems(log).every((id) => forgiven.has(id));
+}
+const SEAL_KEY = "vaultstack:seal:v1";
+const SEAL_SECRET_KEY = "vaultstack:seal:key";
+function sealSecret() {
+  try {
+    let k = localStorage.getItem(SEAL_SECRET_KEY);
+    if (!k) {
+      k = Array.from(crypto.getRandomValues(new Uint8Array(16))).map((b) => b.toString(16).padStart(2, "0")).join("");
+      localStorage.setItem(SEAL_SECRET_KEY, k);
+    }
+    return k;
+  } catch {
+    return "";
+  }
+}
+function sealOf(state) {
+  return sha256Hex(sealSecret() + "|" + stableStringify(normalizeState(state)));
+}
+
 /* A sale is ONE total for the fish sold at a landing. Credit is a breakdown
    of part of that same total: each entry is a customer who took fish
    without paying, with their own repayments. Cash received is always
@@ -482,6 +627,7 @@ function normalizeSale(x) {
       customer: (c.customer || "").trim() || "Unknown customer",
       amount: Number(c.amount) || 0,
       date: c.date || x.date,
+      phone: c.phone || "",
       payments: cleanPays(c.payments),
     }));
   } else {
@@ -489,7 +635,7 @@ function normalizeSale(x) {
     const creditAmt = Math.max(0, amount - paidAtSale);
     credits =
       creditAmt > 0.004
-        ? [{ id: uid(), customer: (x.customer || "").trim() || "Unknown customer", amount: creditAmt, date: x.date, payments: cleanPays(x.payments) }]
+        ? [{ id: uid(), customer: (x.customer || "").trim() || "Unknown customer", amount: creditAmt, date: x.date, phone: "", payments: cleanPays(x.payments) }]
         : [];
   }
   const { paid, customer, payments, ...rest } = x;
@@ -502,6 +648,10 @@ function normalizeState(s) {
     ...s,
     sales: (s.sales || []).map(normalizeSale),
     expenses: s.expenses || [],
+    audit: s.audit || [],
+    voided: s.voided || [],
+    closedDays: s.closedDays || {},
+    crewPin: s.crewPin || null,
     pastSeasons: s.pastSeasons || [],
     positions: s.positions || [],
     expenseCats:
@@ -1355,12 +1505,18 @@ function LockScreen({ company, onUnlock, unlocking, error, onPin }) {
 const PIN_LETTERS = { "2": "ABC", "3": "DEF", "4": "GHI", "5": "JKL", "6": "MNO", "7": "PQRS", "8": "TUV", "9": "WXYZ" };
 function PinPad3({ title, subtitle, errorMsg, onComplete, bio }) {
   const [digits, setDigits] = useState("");
+  /* hand over each 4-digit entry once, even if the screen re-renders before it clears */
+  const fired = useRef(false);
   useEffect(() => {
-    if (digits.length === 4) {
-      const d = digits;
-      setDigits("");
-      onComplete(d);
+    if (digits.length < 4) {
+      fired.current = false;
+      return;
     }
+    if (fired.current) return;
+    fired.current = true;
+    const d = digits;
+    setDigits("");
+    onComplete(d);
   }, [digits, onComplete]);
   const press = (k) => {
     if (k === "del") setDigits((d) => d.slice(0, -1));
@@ -1738,6 +1894,11 @@ function VaultStackV3() {
   const saveTimer = useRef(null);
   const toastTimer = useRef(null);
   const firstRender = useRef(true);
+  /* who unlocked the app: the owner can correct and delete, crew can only add */
+  const [role, setRole] = useState("owner");
+  const roleRef = useRef("owner");
+  roleRef.current = role;
+  const [tamper, setTamper] = useState(false);
   /* a completed log waits here until the save to the phone succeeds */
   const pendingDone = useRef(null);
   const [done, setDone] = useState(null);
@@ -1757,6 +1918,18 @@ function VaultStackV3() {
     (async () => {
       const saved = normalizeState(await loadSaved());
       if (saved && saved.setupDone) {
+        /* were the books changed outside the app since the last save? */
+        let stored = null;
+        try {
+          stored = localStorage.getItem(SEAL_KEY);
+        } catch {}
+        const sealOk = !stored || stored === sealOf(saved);
+        if (!stored) {
+          try {
+            localStorage.setItem(SEAL_KEY, sealOf(saved));
+          } catch {}
+        }
+        setTamper(!sealOk || !auditIntact(saved.audit));
         setState(saved);
         setLocked(Boolean(saved.pin));
       } else {
@@ -1788,6 +1961,11 @@ function VaultStackV3() {
     setSaveStamp("saving");
     saveTimer.current = setTimeout(async () => {
       const ok = await persist(state);
+      if (ok) {
+        try {
+          localStorage.setItem(SEAL_KEY, sealOf(state));
+        } catch {}
+      }
       setSaveStamp(ok ? new Date() : "error");
       /* the check mark only appears once the change is really on the phone */
       const msg = pendingDone.current;
@@ -1829,6 +2007,7 @@ function VaultStackV3() {
     setBioError("");
     try {
       await vsBioUnlock();
+      setRole("owner");
       setLocked(false);
     } catch (e) {
       setBioError(e && e.message ? e.message : "Unlock failed. Use your PIN.");
@@ -1837,20 +2016,55 @@ function VaultStackV3() {
     }
   };
 
+  /* change the books and write one audit line in the same step */
+  const commit = (change, describe) =>
+    setState((st) => {
+      const next = change(st);
+      if (next === st) return st;
+      const e = typeof describe === "function" ? describe(st, next) : describe;
+      return e ? appendAudit(next, { ...e, who: roleRef.current }) : next;
+    });
+  const note = (e) => setState((st) => appendAudit(st, { ...e, who: roleRef.current }));
+  const isOwner = () => {
+    if (roleRef.current === "owner") return true;
+    toast("Only the owner can do this.");
+    return false;
+  };
+  /* deleting keeps the entry: it moves to the voided list with who and when */
+  const voidEntry = (st, kind, item, extra) => ({
+    ...st,
+    voided: [...(st.voided || []), { kind, item, ...(extra || {}), at: new Date().toISOString(), who: roleRef.current }],
+  });
+  const workerName = (st, wid) => (st.workers.find((w) => w.id === wid) || {}).name || "worker";
+
   /* a sale is saved only if its credit fits inside its total */
   const addSale = (s) => {
     if (!creditsFit(s.amount, s.credits)) return false;
-    setState((st) => ({ ...st, sales: [...st.sales, s] }));
+    const cr = saleCreditTotal(s);
+    commit(
+      (st) => ({ ...st, sales: [...st.sales, s] }),
+      {
+        action: "sale",
+        text:
+          "Sale " + fmt(s.amount) +
+          (cr > 0.004 ? " · " + fmt(cr) + " on credit (" + s.credits.map((c) => c.customer + " " + fmtN(c.amount)).join(", ") + ")" : " · paid in cash"),
+        amount: s.amount,
+        date: s.date,
+      }
+    );
     return true;
   };
   /* attach another customer's credit to an existing sale */
   const addCredit = (saleId, credit) => {
     const sale = state.sales.find((x) => x.id === saleId);
     if (!sale || !creditsFit(sale.amount, [...(sale.credits || []), credit])) return false;
-    setState((st) => ({
-      ...st,
-      sales: st.sales.map((x) => (x.id === saleId ? { ...x, credits: [...(x.credits || []), credit] } : x)),
-    }));
+    commit(
+      (st) => ({
+        ...st,
+        sales: st.sales.map((x) => (x.id === saleId ? { ...x, credits: [...(x.credits || []), credit] } : x)),
+      }),
+      { action: "credit", text: "Credit " + fmt(credit.amount) + " to " + credit.customer + " on the sale of " + fmtDate(sale.date), amount: credit.amount, date: sale.date }
+    );
     return true;
   };
   /* a repayment reduces one credit entry; the sale total never changes */
@@ -1864,7 +2078,7 @@ function VaultStackV3() {
       ),
     }));
   const clearCustomerDebt = (customerName) =>
-    setState((st) => {
+    commit((st) => {
       let changed = false;
       const key = custKey(customerName);
       const sales = st.sales.map((x) => {
@@ -1881,40 +2095,113 @@ function VaultStackV3() {
         return { ...x, credits };
       });
       return changed ? { ...st, sales } : st;
+    }, (st, next) => {
+      const owedBefore = st.sales.reduce((a, x) => a + saleOutstanding(x), 0);
+      const owedAfter = next.sales.reduce((a, x) => a + saleOutstanding(x), 0);
+      return { action: "repay", text: customerName + " paid everything owed (" + fmt(owedBefore - owedAfter) + ")", amount: owedBefore - owedAfter, date: todayISO() };
     });
-  const addExpense = (e) => setState((st) => ({ ...st, expenses: [...st.expenses, e] }));
-  const removeSale = (id) => setState((st) => ({ ...st, sales: st.sales.filter((x) => x.id !== id) }));
-  const removeExpense = (id) => setState((st) => ({ ...st, expenses: st.expenses.filter((x) => x.id !== id) }));
-  const addLoan = (wid, loan) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: [...w.loans, loan] } : w)),
-    }));
-  const addPayment = (wid, pay) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: [...w.payments, pay] } : w)),
-    }));
-  const addAdjustment = (wid, adj) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: [...w.adjustments, adj] } : w)),
-    }));
-  const removeLoan = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, loans: w.loans.filter((x) => x.id !== id) } : w)),
-    }));
-  const removePayment = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, payments: w.payments.filter((x) => x.id !== id) } : w)),
-    }));
-  const removeAdjustment = (wid, id) =>
-    setState((st) => ({
-      ...st,
-      workers: st.workers.map((w) => (w.id === wid ? { ...w, adjustments: w.adjustments.filter((x) => x.id !== id) } : w)),
-    }));
+  const addExpense = (e) =>
+    commit((st) => ({ ...st, expenses: [...st.expenses, e] }), {
+      action: "expense",
+      text: "Expense · " + (e.category || "Expense") + " " + fmt(e.amount),
+      amount: e.amount,
+      date: e.date,
+    });
+  const removeSale = (id) => {
+    if (!isOwner()) return;
+    commit(
+      (st) => {
+        const item = st.sales.find((x) => x.id === id);
+        return item ? voidEntry({ ...st, sales: st.sales.filter((x) => x.id !== id) }, "sale", item) : st;
+      },
+      (st) => {
+        const item = st.sales.find((x) => x.id === id);
+        return { action: "void", text: "Deleted sale " + fmt(item.amount) + " of " + fmtDate(item.date), amount: item.amount, date: item.date };
+      }
+    );
+  };
+  const removeExpense = (id) => {
+    if (!isOwner()) return;
+    commit(
+      (st) => {
+        const item = st.expenses.find((x) => x.id === id);
+        return item ? voidEntry({ ...st, expenses: st.expenses.filter((x) => x.id !== id) }, "expense", item) : st;
+      },
+      (st) => {
+        const item = st.expenses.find((x) => x.id === id);
+        return { action: "void", text: "Deleted expense · " + (item.category || "Expense") + " " + fmt(item.amount), amount: item.amount, date: item.date };
+      }
+    );
+  };
+  const workerAdd = (key, label) => (wid, entry) =>
+    commit(
+      (st) => ({
+        ...st,
+        workers: st.workers.map((w) => (w.id === wid ? { ...w, [key]: [...w[key], entry] } : w)),
+      }),
+      (st) => ({ action: "worker", text: label(entry) + " · " + workerName(st, wid) + " " + fmt(entry.amount), amount: entry.amount, date: entry.date })
+    );
+  const addLoan = workerAdd("loans", () => "Loan");
+  const addPayment = workerAdd("payments", (p) => "Payment (" + (p.desc || p.type || "cash") + ")");
+  const addAdjustment = workerAdd("adjustments", (a) => (a.kind === "bonus" ? "Bonus" : "Deduction") + (a.reason ? " · " + a.reason : ""));
+  const workerRemove = (key, label) => (wid, id) => {
+    if (!isOwner()) return;
+    commit(
+      (st) => {
+        const w = st.workers.find((x) => x.id === wid);
+        const item = w && w[key].find((x) => x.id === id);
+        if (!item) return st;
+        return voidEntry(
+          { ...st, workers: st.workers.map((x) => (x.id === wid ? { ...x, [key]: x[key].filter((y) => y.id !== id) } : x)) },
+          key,
+          item,
+          { workerId: wid, workerName: w.name }
+        );
+      },
+      (st) => {
+        const w = st.workers.find((x) => x.id === wid);
+        const item = w[key].find((x) => x.id === id);
+        return { action: "void", text: "Deleted " + label(item).toLowerCase() + " · " + w.name + " " + fmt(item.amount), amount: item.amount, date: item.date };
+      }
+    );
+  };
+  const removeLoan = workerRemove("loans", () => "Loan");
+  const removePayment = workerRemove("payments", (p) => "Payment");
+  const removeAdjustment = workerRemove("adjustments", (a) => (a.kind === "bonus" ? "Bonus" : "Deduction"));
+  /* sending or printing a day's summary closes that day; later changes to it are marked */
+  const closeDay = (date, code, via) =>
+    setState((st) => {
+      const again = st.closedDays && st.closedDays[date];
+      const withNote = appendAudit(
+        { ...st, closedDays: { ...(st.closedDays || {}), [date]: undefined } },
+        {
+          action: "close",
+          text: "Summary for " + fmtDate(date) + (again ? " sent again" : " sent") + " by " + via + " · " + code,
+          date,
+          who: roleRef.current,
+        }
+      );
+      return { ...withNote, closedDays: { ...(st.closedDays || {}), [date]: { at: new Date().toISOString(), code, via } } };
+    });
+  const setCrewPin = (record) => {
+    if (!isOwner()) return;
+    commit((st) => ({ ...st, crewPin: record }), { action: "security", text: record ? "Crew PIN set" : "Crew PIN removed", date: todayISO() });
+  };
+  const acceptBooks = () => {
+    if (!isOwner()) return;
+    setState((st) =>
+      appendAudit(st, {
+        action: "accept",
+        text: "Owner accepted the books after a change warning",
+        date: todayISO(),
+        who: roleRef.current,
+        skip: auditProblems(st.audit),
+      })
+    );
+    setTamper(false);
+    toast("Books accepted. The warning is in the history.");
+  };
+  const canEdit = role === "owner";
   const resolveCategory = (raw) => {
     const name = raw.trim();
     const existing = state.expenseCats.find((c) => c.toLowerCase() === name.toLowerCase());
@@ -1922,8 +2209,9 @@ function VaultStackV3() {
     setState((st) => ({ ...st, expenseCats: [...st.expenseCats, name] }));
     return name;
   };
-  const closeSeason = () =>
-    setState((st) => {
+  const closeSeason = () => {
+    if (!isOwner()) return;
+    commit((st) => {
       const f = computeFinancials(st);
       const settlements = st.workers.map((w) => {
         const k = workerNumbers(st, w, f);
@@ -1943,10 +2231,16 @@ function VaultStackV3() {
           const k = workerNumbers(st, w, f);
           return { ...w, carriedDebt: k.payout < 0 ? -k.payout : 0, loans: [], payments: [], adjustments: [] };
         }),
+        voided: [],
       };
-    });
+    }, (st) => ({ action: "season", text: "Closed " + (st.season.name || "the season") + " · pot " + fmt(computeFinancials(st).netPot), amount: computeFinancials(st).netPot, date: todayISO() }));
+  };
   const resetAll = async () => {
+    if (!isOwner()) return;
     await wipeSaved();
+    try {
+      localStorage.removeItem(SEAL_KEY);
+    } catch {}
     try {
       localStorage.removeItem(VS_BIO_KEY);
     } catch {}
@@ -2015,6 +2309,7 @@ function VaultStackV3() {
           errorMsg={pinErr}
           onComplete={async (d) => {
             if (await vsVerifyPin(d, state.pin)) {
+              setRole("owner");
               setLocked(false);
               setPinErr("");
               /* quietly upgrade old plain PIN records to the salted format */
@@ -2027,6 +2322,11 @@ function VaultStackV3() {
                   setState((st) => ({ ...st, pin: record }));
                 } catch {}
               }
+            } else if (state.crewPin && (await vsVerifyPin(d, state.crewPin))) {
+              /* crew PIN: can log new entries, cannot delete, correct or change settings */
+              setRole("crew");
+              setLocked(false);
+              setPinErr("");
             } else {
               setPinErr("Wrong PIN. Try again.");
             }
@@ -2047,7 +2347,7 @@ function VaultStackV3() {
     { id: "workers", Icon: TabWorkers, IconOn: TabWorkersOn, label: "Workers" },
     { id: "more", Icon: TabMore, IconOn: TabMoreOn, label: "More" },
   ];
-  const activeTab = tab === "weather" ? "more" : tab;
+  const activeTab = tab === "weather" || tab === "history" ? "more" : tab;
   const sky = tab === "weather";
 
   const openSale = () => setFlow("sale");
@@ -2077,6 +2377,10 @@ function VaultStackV3() {
             onLock={lock}
             saveStamp={saveStamp}
             onMenu={() => setMenu("me")}
+            onSummary={() => setFlow("summary")}
+            tamper={tamper}
+            onAccept={acceptBooks}
+            canEdit={canEdit}
           />
         )}
         {tab === "sales" && (
@@ -2093,6 +2397,7 @@ function VaultStackV3() {
             onAddCredit={addCredit}
             logged={logged}
             toast={toast}
+            canEdit={canEdit}
           />
         )}
         {tab === "expenses" && (
@@ -2102,6 +2407,7 @@ function VaultStackV3() {
             openExpense={openExpense}
             removeExpense={removeExpense}
             toast={toast}
+            canEdit={canEdit}
           />
         )}
         {tab === "workers" && (
@@ -2116,9 +2422,11 @@ function VaultStackV3() {
             removeAdjustment={removeAdjustment}
             toast={toast}
             logged={logged}
+            canEdit={canEdit}
           />
         )}
         {tab === "weather" && <WeatherTabV2 onBack={() => setTab("more")} />}
+        {tab === "history" && <HistoryTab state={state} tamper={tamper} onBack={() => setTab("more")} />}
         {tab === "more" && (
           <MoreTabV2
             state={state}
@@ -2127,6 +2435,11 @@ function VaultStackV3() {
             onReset={resetAll}
             onLock={lock}
             go={setTab}
+            canEdit={canEdit}
+            tamper={tamper}
+            onAccept={acceptBooks}
+            onSummary={() => setFlow("summary")}
+            onSetCrewPin={setCrewPin}
             bio={{
               supported: bioSupported,
               enrolled: bioEnrolled,
@@ -2137,6 +2450,7 @@ function VaultStackV3() {
                 try {
                   await vsBioEnroll();
                   setBioEnrolled(true);
+                  note({ action: "security", text: bioName + " unlock turned on", date: todayISO() });
                   toast("Face / fingerprint unlock is on");
                 } catch (e) {
                   setBioError(e && e.message ? e.message : "Could not turn on biometric unlock.");
@@ -2150,6 +2464,7 @@ function VaultStackV3() {
                   localStorage.removeItem(VS_BIO_KEY);
                 } catch {}
                 setBioEnrolled(false);
+                note({ action: "security", text: bioName + " unlock turned off", date: todayISO() });
                 toast("Face / fingerprint unlock is off");
               },
             }}
@@ -2232,7 +2547,7 @@ function VaultStackV3() {
               date,
               amount,
               note: "",
-              credits: credits.map((c) => ({ id: uid(), customer: c.customer, amount: c.amount, date, payments: [] })),
+              credits: credits.map((c) => ({ id: uid(), customer: c.customer, amount: c.amount, date, phone: c.phone || "", payments: [] })),
               createdAt: new Date().toISOString(),
             };
             if (!addSale(sale)) return false;
@@ -2247,6 +2562,7 @@ function VaultStackV3() {
       {flow === "pay" && payCust && (
         <RecordPaymentSheet
           credit={payCust}
+          reminder={smsLink(payCust.phone, reminderText(state, payCust))}
           onClose={() => {
             setFlow(null);
             setPayCust(null);
@@ -2264,11 +2580,15 @@ function VaultStackV3() {
                 addCreditPayment(t.saleId, t.creditId, { id: uid(), date, amount: take });
                 left -= take;
               });
+            note({ action: "repay", text: "Repayment " + fmt(amount) + " from " + payCust.name, amount, date });
             setFlow(null);
             setPayCust(null);
             logged(row.owed - amount <= 0.004 ? payCust.name + " has paid in full" : "Repayment saved · " + fmt(amount));
           }}
         />
+      )}
+      {flow === "summary" && (
+        <DailySummarySheet state={state} fin={fin} onClose={() => setFlow(null)} onSent={closeDay} />
       )}
       {flow === "expense-cat" && (
         <Modal title="New Expense" onClose={() => setFlow(null)}>
@@ -2543,7 +2863,7 @@ function WeatherTabV2({ onBack }) {
 }
 
 /* ---------------- Home ---------------- */
-function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp, onMenu }) {
+function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp, onMenu, onSummary, tamper, onAccept, canEdit = true }) {
   const owner = state.company.owner ? state.company.owner.trim() : "";
   const first = owner ? owner.split(" ")[0] : "";
   const today = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
@@ -2588,6 +2908,7 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp, o
         }
       />
       <div className="px">
+        {tamper ? <TamperBanner canEdit={canEdit} onAccept={onAccept} /> : null}
         {/* the season as a Wallet card: the one figure a skipper opens the app for */}
         <div className="pass">
           <svg className="pwaves" viewBox="0 0 390 120" preserveAspectRatio="none" fill="none" stroke="#fff" strokeWidth="1.4" aria-hidden="true">
@@ -2627,6 +2948,27 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp, o
             <span className="qs">Premix, food, repairs…</span>
           </button>
         </div>
+
+        {/* end of the day: one message or printout with a check code */}
+        <div className="group" style={{ marginTop: 14 }}>
+          <Item onClick={onSummary}>
+            <RowBody
+              lead={<Sq Icon={DocText} color="#0A7CC1" />}
+              title="Today’s Summary"
+              sub={
+                state.closedDays && state.closedDays[todayISO()]
+                  ? "Sent · " + state.closedDays[todayISO()].code + (state.closedDays[todayISO()].code !== dailySummary(state, fin, todayISO()).code ? " · changed since" : "")
+                  : "Send on WhatsApp or SMS, or print it"
+              }
+              chevron
+            />
+          </Item>
+        </div>
+        {!canEdit ? (
+          <div className="foot center" style={{ paddingTop: 10 }}>
+            <span className="rolepill"><PersonCircle size={15} /> Signed in as Crew</span>
+          </div>
+        ) : null}
 
         <Head title="Latest Activity" action={recent.length ? "See All" : null} onAction={() => go("sales")} />
         {recent.length > 0 ? (
@@ -2712,17 +3054,19 @@ function saleCreditLine(s) {
 function CreditForm({ room, onAdd, addLabel = "Add to Credit" }) {
   const [name, setName] = useState("");
   const [amt, setAmt] = useState("");
+  const [phone, setPhone] = useState("");
   const [err, setErr] = useState("");
   const n = Number(amt) || 0;
   const add = () => {
     if (!name.trim()) return setErr("Enter the customer’s name.");
     if (!(n > 0)) return setErr("Enter how much they took on credit.");
     if (n > room + 0.004) return setErr("Credit can’t be more than the sale. Only " + fmt(room) + " is left.");
-    if (onAdd({ customer: name.trim(), amount: Math.round(n * 100) / 100 }) === false) {
+    if (onAdd({ customer: name.trim(), amount: Math.round(n * 100) / 100, phone: phone.trim() }) === false) {
       return setErr("Credit can’t be more than the sale total.");
     }
     setName("");
     setAmt("");
+    setPhone("");
     setErr("");
   };
   return (
@@ -2730,6 +3074,7 @@ function CreditForm({ room, onAdd, addLabel = "Add to Credit" }) {
       <div className="group g2">
         <FormRow label="Customer" value={name} onChange={(v) => { setName(v); setErr(""); }} placeholder="Ama" />
         <FormRow label="On credit (GH₵)" value={amt} onChange={(v) => { setAmt(v.replace(/[^0-9.]/g, "")); setErr(""); }} placeholder="0" inputMode="decimal" />
+        <FormRow label="Phone (for SMS)" value={phone} onChange={(v) => setPhone(v.replace(/[^0-9+ ]/g, ""))} placeholder="Optional" inputMode="tel" />
       </div>
       <div className="kmsg" style={{ color: err ? C.red : C.sec, textAlign: "left", padding: "0 4px" }}>
         {err || (room > 0.004 ? "Up to " + fmt(room) + " can go on credit." : "The whole sale is already on credit.")}
@@ -2741,7 +3086,7 @@ function CreditForm({ room, onAdd, addLabel = "Add to Credit" }) {
 }
 
 /* ---------------- Sales ---------------- */
-function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCustomer, onAddCredit, logged, toast }) {
+function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCustomer, onAddCredit, logged, toast, canEdit = true }) {
   const [del, setDel] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [view, setView] = useState("all");
@@ -2804,6 +3149,14 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
                   onTap={() => onRecordPayment(c)}
                   actions={[
                     {
+                      label: "Remind",
+                      Icon: Bell,
+                      color: "#0A7CC1",
+                      onClick: () => {
+                        window.location.href = smsLink(c.phone, reminderText(state, c));
+                      },
+                    },
+                    {
                       label: "Paid",
                       Icon: Check,
                       color: "#34C759",
@@ -2833,7 +3186,7 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
                 </SwipeRow>
               ))}
             </div>
-            <div className="foot">Tap Record when a customer pays back. Swipe left to mark everything they owe as paid.</div>
+            <div className="foot">Tap Record when a customer pays back. Swipe left to send an SMS reminder or mark everything they owe as paid.</div>
           </div>
         ) : null}
 
@@ -2860,7 +3213,7 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
                 <SwipeRow
                   key={s.id}
                   onTap={() => setOpenId(s.id)}
-                  actions={[{ label: "Delete", Icon: Trash2, color: "#FF3B30", onClick: () => setDel(s) }]}
+                  actions={canEdit ? [{ label: "Delete", Icon: Trash2, color: "#FF3B30", onClick: () => setDel(s) }] : []}
                 >
                   <RowBody
                     lead={<Sq Icon={Fish} color="#34C759" />}
@@ -2874,7 +3227,7 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
             })}
           </div>
         )}
-        {shown.length > 0 ? <div className="foot">Tap a sale to see or add its credit. Swipe left to delete it.</div> : null}
+        {shown.length > 0 ? <div className="foot">Tap a sale to see or add its credit.{canEdit ? " Swipe left to delete it." : ""}</div> : null}
       </div>
       <Spacer />
 
@@ -2936,20 +3289,24 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
             room={Math.max(0, open.amount - saleCreditTotal(open))}
             addLabel="Add Credit to This Sale"
             onAdd={(c) => {
-              const ok = onAddCredit(open.id, { id: uid(), customer: c.customer, amount: c.amount, date: open.date, payments: [] });
+              const ok = onAddCredit(open.id, { id: uid(), customer: c.customer, amount: c.amount, date: open.date, phone: c.phone || "", payments: [] });
               if (ok) logged("Credit added · " + c.customer + " · " + fmt(c.amount));
               return ok;
             }}
           />
-          <div style={{ height: 22 }} />
-          <Btn
-            label={<><Trash2 size={18} /> Delete Sale</>}
-            kind="danger"
-            onClick={() => {
-              setDel(open);
-              setOpenId(null);
-            }}
-          />
+          {canEdit ? (
+            <>
+              <div style={{ height: 22 }} />
+              <Btn
+                label={<><Trash2 size={18} /> Delete Sale</>}
+                kind="danger"
+                onClick={() => {
+                  setDel(open);
+                  setOpenId(null);
+                }}
+              />
+            </>
+          ) : null}
         </Modal>
       )}
 
@@ -2960,6 +3317,7 @@ function SalesTab({ state, fin, openSale, removeSale, onRecordPayment, onClearCu
           lines={[
             fmtDate(del.date) + " · " + saleCreditLine(del).text,
             ...((del.credits || []).length ? ["Its credit entries and repayments are removed too."] : []),
+            "It stays in Change History as deleted.",
           ]}
           confirmLabel="Delete Sale"
           onClose={() => setDel(null)}
@@ -3067,7 +3425,7 @@ function SaleSheet({ onClose, onDone }) {
 }
 
 /* -------- customer pays back part of what they owe -------- */
-function RecordPaymentSheet({ credit, onClose, onDone }) {
+function RecordPaymentSheet({ credit, onClose, onDone, reminder }) {
   const [val, setVal] = useState("");
   const [date, setDate] = useState(todayISO());
   const [editDate, setEditDate] = useState(false);
@@ -3112,12 +3470,17 @@ function RecordPaymentSheet({ credit, onClose, onDone }) {
         disabled={!amt || over}
         onClick={() => onDone({ amount: amt, date })}
       />
+      {reminder ? (
+        <a href={reminder} className="plainlink" style={{ marginTop: 6 }}>
+          <Bell size={18} /> Send Reminder by SMS{credit.phone ? "" : " (choose contact)"}
+        </a>
+      ) : null}
     </Modal>
   );
 }
 
 /* ---------------- Expenses ---------------- */
-function ExpensesTab({ state, fin, openExpense, removeExpense, toast }) {
+function ExpensesTab({ state, fin, openExpense, removeExpense, toast, canEdit = true }) {
   const [del, setDel] = useState(null);
   const total = fin.fixedTotal + fin.varTotal;
 
@@ -3208,8 +3571,8 @@ function ExpensesTab({ state, fin, openExpense, removeExpense, toast }) {
                 {grouped.byDate[d].map((e) => (
                   <SwipeRow
                     key={e.id}
-                    onTap={() => setDel(e)}
-                    actions={[{ label: "Delete", Icon: Trash2, color: "#FF3B30", onClick: () => setDel(e) }]}
+                    onTap={canEdit ? () => setDel(e) : undefined}
+                    actions={canEdit ? [{ label: "Delete", Icon: Trash2, color: "#FF3B30", onClick: () => setDel(e) }] : []}
                   >
                     <RowBody
                       lead={<Sq Icon={catIcon(e.category)} color={catColor(e.category)} />}
@@ -3223,7 +3586,7 @@ function ExpensesTab({ state, fin, openExpense, removeExpense, toast }) {
             </div>
           ))
         )}
-        {state.expenses.length > 0 ? <div className="foot" style={{ paddingTop: 0 }}>Swipe left on an expense to delete it.</div> : null}
+        {state.expenses.length > 0 && canEdit ? <div className="foot" style={{ paddingTop: 0 }}>Swipe left on an expense to delete it.</div> : null}
       </div>
       <Spacer />
 
@@ -3231,7 +3594,7 @@ function ExpensesTab({ state, fin, openExpense, removeExpense, toast }) {
         <ConfirmRemove
           title={del.category || "Expense"}
           amount={fmt(del.amount)}
-          lines={[fmtDate(del.date) + (del.note ? " · " + del.note : "")]}
+          lines={[fmtDate(del.date) + (del.note ? " · " + del.note : ""), "It stays in Change History as deleted."]}
           confirmLabel="Delete Expense"
           onClose={() => setDel(null)}
           onConfirm={() => {
@@ -3246,9 +3609,10 @@ function ExpensesTab({ state, fin, openExpense, removeExpense, toast }) {
 }
 
 /* ---------------- More: settings ---------------- */
-function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
+function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio, canEdit = true, tamper, onAccept, onSummary, onSetCrewPin }) {
   const [confirm, setConfirm] = useState(false);
   const [resetAsk, setResetAsk] = useState(false);
+  const [crewSetup, setCrewSetup] = useState(false);
 
   const bioSub = !bio
     ? ""
@@ -3264,14 +3628,34 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
     <div>
       <TitleBlock title="More" />
       <div className="px">
+        {tamper ? <TamperBanner canEdit={canEdit} onAccept={onAccept} /> : null}
         <div className="group">
           <div className="li vrow" style={{ minHeight: 80 }}>
             <Mono name={state.company.name} size={56} />
             <div className="tx">
               <div className="tt" style={{ fontSize: 20 }}>{state.company.name}</div>
               <div className="st">{(state.company.owner || "Owner not set") + (state.company.phone ? " · " + state.company.phone : "")}</div>
+              <div style={{ marginTop: 6 }}>
+                <span className="rolepill"><PersonCircle size={15} /> {canEdit ? "Signed in as Owner" : "Signed in as Crew"}</span>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div className="caps">Records</div>
+        <div className="group">
+          <Item onClick={onSummary}>
+            <RowBody lead={<Sq Icon={DocText} color="#0A7CC1" />} title="Daily Summary" sub="WhatsApp, SMS or print, with a check code" titleStyle={{ fontWeight: 400 }} chevron />
+          </Item>
+          <Item onClick={() => go("history")}>
+            <RowBody
+              lead={<Sq Icon={Clock} color="#8E8E93" />}
+              title="Change History"
+              sub={(state.audit || []).length + " changes recorded" + ((state.voided || []).length ? " · " + state.voided.length + " deleted" : "")}
+              titleStyle={{ fontWeight: 400 }}
+              chevron
+            />
+          </Item>
         </div>
 
         <div className="caps">Season</div>
@@ -3310,16 +3694,37 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
               <RowBody lead={<Sq Icon={Lock} color="#0A7CC1" />} title="Lock Now" sub="Ask for the PIN again" titleStyle={{ fontWeight: 400 }} chevron />
             </Item>
           ) : null}
-          <Item>
-            <RowBody
-              lead={<Sq Icon={FaceId} color="#34C759" />}
-              title={bioName + " Unlock"}
-              titleStyle={{ fontWeight: 400 }}
-              sub={bioSub}
-              right={<Switch on={!!(bio && bio.enrolled)} onChange={toggleBio} disabled={!toggleBio} label={bioName + " unlock"} />}
-            />
-          </Item>
+          {canEdit ? (
+            <Item>
+              <RowBody
+                lead={<Sq Icon={FaceId} color="#34C759" />}
+                title={bioName + " Unlock"}
+                titleStyle={{ fontWeight: 400 }}
+                sub={bioSub}
+                right={<Switch on={!!(bio && bio.enrolled)} onChange={toggleBio} disabled={!toggleBio} label={bioName + " unlock"} />}
+              />
+            </Item>
+          ) : null}
+          {canEdit ? (
+            <Item onClick={() => setCrewSetup(true)}>
+              <RowBody
+                lead={<Sq Icon={KeyIcon} color="#5856D6" />}
+                title={state.crewPin ? "Change Crew PIN" : "Add a Crew PIN"}
+                titleStyle={{ fontWeight: 400 }}
+                sub={state.crewPin ? "On · crew can log, not delete" : "Let crew log without your PIN"}
+                chevron
+              />
+            </Item>
+          ) : null}
+          {canEdit && state.crewPin ? (
+            <Item inset={16} onClick={() => onSetCrewPin(null)}>
+              <RowBody title="Remove Crew PIN" titleStyle={{ fontWeight: 400, color: C.red }} sm />
+            </Item>
+          ) : null}
         </div>
+        {canEdit && !state.pin && state.crewPin ? (
+          <div className="foot" style={{ color: C.orangeT }}>Set an owner PIN too, or anyone can open the app as owner.</div>
+        ) : null}
         {bio && !bio.enrolled && bio.supported ? (
           <div className="foot">
             Your phone’s {bioName} unlocks the app. No biometric data touches VaultStack, and your PIN still works if a scan fails.
@@ -3352,16 +3757,22 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
           </div>
         ) : null}
 
-        <div className="group" style={{ marginTop: 32 }}>
-          <Item inset={16} onClick={() => setConfirm(true)}>
-            <RowBody title="Close This Season…" titleStyle={{ fontWeight: 400, color: C.red }} sm />
-          </Item>
-        </div>
-        <div className="group" style={{ marginTop: 16 }}>
-          <Item inset={16} onClick={() => setResetAsk(true)}>
-            <RowBody title="Erase All Data…" titleStyle={{ fontWeight: 400, color: C.red }} sm />
-          </Item>
-        </div>
+        {canEdit ? (
+          <>
+            <div className="group" style={{ marginTop: 32 }}>
+              <Item inset={16} onClick={() => setConfirm(true)}>
+                <RowBody title="Close This Season…" titleStyle={{ fontWeight: 400, color: C.red }} sm />
+              </Item>
+            </div>
+            <div className="group" style={{ marginTop: 16 }}>
+              <Item inset={16} onClick={() => setResetAsk(true)}>
+                <RowBody title="Erase All Data…" titleStyle={{ fontWeight: 400, color: C.red }} sm />
+              </Item>
+            </div>
+          </>
+        ) : (
+          <div className="foot center" style={{ paddingTop: 24 }}>Closing the season and erasing data need the owner PIN.</div>
+        )}
         <div className="foot center" style={{ paddingTop: 14 }}>VaultStack keeps everything on this phone.</div>
       </div>
       <Spacer />
@@ -3403,6 +3814,16 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
         </Modal>
       )}
 
+      {crewSetup && (
+        <CrewPinSetup
+          ownerPin={state.pin}
+          onClose={() => setCrewSetup(false)}
+          onDone={(record) => {
+            setCrewSetup(false);
+            onSetCrewPin(record);
+          }}
+        />
+      )}
       {resetAsk && (
         <Modal title="Erase Everything?" onClose={() => setResetAsk(false)}>
           <div className="lsub center" style={{ lineHeight: 1.45, margin: "0 8px 20px" }}>
@@ -3424,6 +3845,309 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio }) {
   );
 }
 
+/* ---------------- records: tamper warning, summary, history, crew PIN ---------------- */
+function TamperBanner({ canEdit, onAccept }) {
+  return (
+    <div className="banner" role="alert">
+      <Sq Icon={Warn} color="#FF3B30" size={34} />
+      <div style={{ flex: 1 }}>
+        <div className="bt">The books were changed outside the app</div>
+        <div className="bs">
+          The saved figures no longer match their fingerprint. Compare them with your last daily summary before you trust them.
+        </div>
+        {canEdit ? (
+          <button className="link" style={{ fontSize: 15, marginTop: 8, fontWeight: 600 }} onClick={onAccept}>
+            I’ve checked · Accept current books
+          </button>
+        ) : (
+          <div className="bs" style={{ marginTop: 6 }}>Ask the owner to check.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SummaryPrint({ state, d }) {
+  const rows = (items) =>
+    items.map((r, i) => (
+      <tr key={i}>
+        <td>{r[0]}</td>
+        <td className="r">{r[1]}</td>
+      </tr>
+    ));
+  return ReactDOM.createPortal(
+    <div className="print-only">
+      <h1>{state.company.name}</h1>
+      <div>Daily summary · {longDate(d.date)}</div>
+      <div className="small">{d.season.name} · printed {new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</div>
+
+      <h2>Sales</h2>
+      <table>
+        <tbody>
+          {rows(d.sales.map((x) => [(x.note || "Fish sale") + ((x.credits || []).length ? " · credit: " + x.credits.map((c) => c.customer + " " + fmtN(c.amount)).join(", ") : ""), fmtN(x.amount)]))}
+          {d.sales.length === 0 ? rows([["No sales", "—"]]) : null}
+          <tr className="t"><td>Total sales</td><td className="r">{fmt(d.salesTotal)}</td></tr>
+          <tr><td>Cash at the sale</td><td className="r">{fmtN(d.cashAtSale)}</td></tr>
+          <tr><td>On credit</td><td className="r">{fmtN(d.creditTotal)}</td></tr>
+        </tbody>
+      </table>
+
+      {d.repayments.length ? (
+        <div>
+          <h2>Credit repaid</h2>
+          <table>
+            <tbody>
+              {rows(d.repayments.map((r) => [r.customer, fmtN(r.amount)]))}
+              <tr className="t"><td>Total repaid</td><td className="r">{fmt(d.repaidTotal)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+
+      <h2>Expenses</h2>
+      <table>
+        <tbody>
+          {rows(d.expenses.map((e) => [(e.category || "Expense") + (e.note ? " · " + e.note : ""), fmtN(e.amount)]))}
+          {d.expenses.length === 0 ? rows([["No expenses", "—"]]) : null}
+          <tr className="t"><td>Total expenses</td><td className="r">{fmt(d.expTotal)}</td></tr>
+        </tbody>
+      </table>
+
+      {d.crew.length ? (
+        <div>
+          <h2>Crew</h2>
+          <table><tbody>{rows(d.crew.map((c) => [c.name + " · " + c.what, fmtN(c.amount)]))}</tbody></table>
+        </div>
+      ) : null}
+
+      {d.voids.length ? (
+        <div>
+          <h2>Deleted today</h2>
+          <table><tbody>{rows(d.voids.map((v) => [v.what + (v.who === "crew" ? " (by crew)" : ""), fmtN(v.amount)]))}</tbody></table>
+        </div>
+      ) : null}
+
+      <h2>Season so far</h2>
+      <table>
+        <tbody>
+          {rows([
+            ["Sales", fmtN(d.season.sales)],
+            ["Expenses", fmtN(d.season.expenses)],
+            ["Customers still owe", fmtN(d.season.owed)],
+          ])}
+          <tr className="t"><td>Money in the pot</td><td className="r">{fmt(d.season.pot)}</td></tr>
+        </tbody>
+      </table>
+
+      <div className="pcode">
+        <div>
+          Check code
+          <div className="small">If VaultStack later shows a different code for this day, something was changed after this page was printed.</div>
+        </div>
+        <b>{d.code}</b>
+      </div>
+      <div className="sig">
+        <div>Prepared by</div>
+        <div>Checked by</div>
+        <div>Date</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function DailySummarySheet({ state, fin, onClose, onSent }) {
+  const [date, setDate] = useState(todayISO());
+  const [copied, setCopied] = useState(false);
+  const d = useMemo(() => dailySummary(state, fin, date), [state, fin, date]);
+  const text = useMemo(() => summaryText(state, d), [state, d]);
+  const short = useMemo(() => summaryShort(state, d), [state, d]);
+  const closed = state.closedDays && state.closedDays[date];
+  const changed = closed && closed.code !== d.code;
+  const late = (state.audit || []).filter((e) => e.late && e.date === date).length;
+  const when = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return (
+    <Modal title="Daily Summary" onClose={onClose}>
+      <div className="chips" style={{ marginTop: 0 }}>
+        <DateChip date={date} setDate={(v) => { setDate(v); setCopied(false); }} />
+      </div>
+      <div className="group g2" style={{ marginTop: 14 }}>
+        <KV k={"Sales · " + d.sales.length} v={fmtN(d.salesTotal)} />
+        {d.creditTotal > 0.004 ? <KV k="Of which on credit" v={fmtN(d.creditTotal)} color={C.orangeT} /> : null}
+        {d.repaidTotal > 0.004 ? <KV k="Credit repaid" v={fmtN(d.repaidTotal)} color={C.greenT} /> : null}
+        <KV k={"Expenses · " + d.expenses.length} v={fmtN(d.expTotal)} />
+        {d.crew.length ? <KV k="Crew entries" v={String(d.crew.length)} muted /> : null}
+        {d.voids.length ? <KV k="Deleted" v={String(d.voids.length)} color={C.red} /> : null}
+        <KV k="Money in the pot" v={fmtN(d.season.pot)} strong />
+        <KV k="Check code" v={<span className="code">{d.code}</span>} />
+      </div>
+      <div className="foot" style={{ color: changed ? C.red : C.sec }}>
+        {changed
+          ? "Changed after it was sent at " + when(closed.at) + " (" + closed.code + "). Send it again so everyone has the right figures."
+          : closed
+          ? "Sent by " + closed.via + " at " + when(closed.at) + (late ? " · " + late + " change" + (late === 1 ? "" : "s") + " after" : "") + "."
+          : "Sending or printing closes the day: anything changed for it later is marked in the history and changes the check code."}
+      </div>
+      <div style={{ height: 16 }} />
+      <a className="btnlink" href={waLink("", text)} target="_blank" rel="noreferrer" onClick={() => onSent(date, d.code, "WhatsApp")}>
+        <Btn label={<><MessageCircle size={19} strokeWidth={2} /> Send on WhatsApp</>} onClick={() => {}} />
+      </a>
+      <a className="btnlink" href={smsLink("", short)} onClick={() => onSent(date, d.code, "SMS")}>
+        <Btn label={<><MessageCircle size={19} strokeWidth={2} /> Send Short SMS</>} kind="ghost" onClick={() => {}} />
+      </a>
+      <Btn
+        label={<><Printer size={19} strokeWidth={2} /> Print or Save as PDF</>}
+        kind="ghost"
+        onClick={() => {
+          onSent(date, d.code, "print");
+          setTimeout(() => window.print(), 50);
+        }}
+      />
+      <div style={{ height: 8 }} />
+      <Btn
+        label={copied ? <><Check size={19} strokeWidth={2.4} /> Copied</> : <><Copy size={19} strokeWidth={2} /> Copy Full Text</>}
+        kind="plain"
+        onClick={() => copyText(text).then(() => setCopied(true))}
+      />
+      <div className="sh" style={{ paddingTop: 18 }}><b style={{ fontSize: 20 }}>Preview</b></div>
+      <pre className="stmt">{text}</pre>
+      <div className="foot" style={{ paddingTop: 0 }}>SMS version ({short.length} of 160 characters): {short}</div>
+      <SummaryPrint state={state} d={d} />
+    </Modal>
+  );
+}
+
+const HIST_ICON = {
+  sale: [Fish, "#34C759"],
+  credit: [Banknote, "#FF9500"],
+  repay: [Check, "#34C759"],
+  expense: [Package, "#FF9500"],
+  worker: [PeopleLine, "#5856D6"],
+  void: [Trash2, "#FF3B30"],
+  close: [DocText, "#0A7CC1"],
+  season: [Flag, "#8E8E93"],
+  security: [KeyIcon, "#8E8E93"],
+  accept: [ShieldCheck, "#FF3B30"],
+};
+function HistoryTab({ state, tamper, onBack }) {
+  const days = useMemo(() => {
+    const map = {};
+    (state.audit || []).forEach((e) => {
+      const k = (e.at || "").slice(0, 10);
+      (map[k] = map[k] || []).push(e);
+    });
+    return Object.keys(map)
+      .sort((a, b) => (a < b ? 1 : -1))
+      .map((k) => ({ day: k, items: map[k].slice().reverse() }));
+  }, [state.audit]);
+  const ok = auditIntact(state.audit);
+  const n = (state.audit || []).length;
+  return (
+    <div>
+      <div className="navrow">
+        <button className="gbtn glass" onClick={onBack} aria-label="Back">
+          <ChevronLeft size={20} />
+        </button>
+        <span />
+      </div>
+      <TitleBlock title="Change History" sub="Every entry and deletion, newest first" />
+      <div className="px">
+        <div className="group">
+          <Item inset={64}>
+            <RowBody
+              lead={<Sq Icon={ok && !tamper ? ShieldCheck : Warn} color={ok && !tamper ? "#34C759" : "#FF3B30"} />}
+              title={ok && !tamper ? "History checks out" : "History does not check out"}
+              titleStyle={{ fontWeight: 600 }}
+              sub={
+                ok && !tamper
+                  ? n + (n === 1 ? " change" : " changes") + ", each linked to the one before. None has been edited or removed."
+                  : "Something was edited outside the app. Compare with your last daily summary."
+              }
+            />
+          </Item>
+        </div>
+        {days.length === 0 ? (
+          <div className="card empty" style={{ marginTop: 14 }}>Nothing yet. Every sale, expense, repayment and deletion will be listed here.</div>
+        ) : (
+          days.map((g) => (
+            <div key={g.day}>
+              <div className="caps">
+                {fmtDate(g.day)}
+                {state.closedDays && state.closedDays[g.day] ? " · summary sent" : ""}
+              </div>
+              <div className="group">
+                {g.items.map((e) => {
+                  const [I, col] = HIST_ICON[e.action] || [Clock, "#8E8E93"];
+                  return (
+                    <Item key={e.id}>
+                      <RowBody
+                        lead={<Sq Icon={I} color={col} />}
+                        title={
+                          <>
+                            {e.text}
+                            {e.who === "crew" ? <span className="badge crew">Crew</span> : null}
+                            {e.late ? <span className="badge late">After close</span> : null}
+                            {e.action === "void" ? <span className="badge del">Deleted</span> : null}
+                          </>
+                        }
+                        titleStyle={{ fontWeight: 400, fontSize: 15, whiteSpace: "normal", lineHeight: 1.3 }}
+                        sub={
+                          new Date(e.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) +
+                          (e.date && e.date !== g.day ? " · for " + fmtDate(e.date) : "")
+                        }
+                      />
+                    </Item>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
+        <div className="foot">
+          The history is kept on this phone with the books. Deleted entries are kept too, so nothing disappears without a trace.
+        </div>
+      </div>
+      <Spacer />
+    </div>
+  );
+}
+
+/* the owner chooses a second PIN for the crew: they can log, not delete or change settings */
+function CrewPinSetup({ ownerPin, onDone, onClose }) {
+  const [first, setFirst] = useState(null);
+  const [err, setErr] = useState("");
+  return ReactDOM.createPortal(
+    <div className="pinwrap" role="dialog" aria-modal="true" aria-label="Crew PIN">
+      <div>
+        <button className="gbtn sx" style={{ position: "absolute", left: 16, top: "calc(env(safe-area-inset-top, 0px) + 14px)", zIndex: 2 }} onClick={onClose} aria-label="Close">
+          <XMark size={16} />
+        </button>
+        <PinPad3
+          title={first ? "Enter the crew PIN again" : "Choose a crew PIN"}
+          subtitle={first ? "" : "Crew can log sales and expenses, but not delete or change settings"}
+          errorMsg={err}
+          onComplete={async (d) => {
+            if (!first) {
+              if (ownerPin && (await vsVerifyPin(d, ownerPin))) return setErr("That is your owner PIN. Pick a different one.");
+              setErr("");
+              return setFirst(d);
+            }
+            if (d !== first) {
+              setFirst(null);
+              return setErr("The PINs didn’t match. Start again.");
+            }
+            const salt = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("");
+            onDone(await vsHashPin(d, salt));
+          }}
+        />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* ---------------- Workers (crew) ---------------- */
 function WorkersTabV2({
   state,
@@ -3436,6 +4160,7 @@ function WorkersTabV2({
   removeAdjustment,
   toast,
   logged,
+  canEdit = true,
 }) {
   const [openId, setOpenId] = useState(null);
   const [sub, setSub] = useState(null);
@@ -3603,8 +4328,8 @@ function WorkersTabV2({
                     <SwipeRow
                       key={h.id}
                       inset={16}
-                      onTap={() => setDel(h)}
-                      actions={[{ label: "Delete", Icon: Trash2, color: "#FF3B30", onClick: () => setDel(h) }]}
+                      onTap={canEdit ? () => setDel(h) : undefined}
+                      actions={canEdit ? [{ label: "Delete", Icon: Trash2, color: "#FF3B30", onClick: () => setDel(h) }] : []}
                     >
                       <RowBody
                         title={histLabel(h)}
@@ -3620,7 +4345,7 @@ function WorkersTabV2({
                     </SwipeRow>
                   ))}
                 </div>
-                <div className="foot">Swipe left on an entry to delete it.</div>
+                {canEdit ? <div className="foot">Swipe left on an entry to delete it.</div> : null}
               </div>
             ) : null}
           </div>
@@ -3775,13 +4500,8 @@ function WorkersTabV2({
       {w && sub === "statement" && (
         <Modal title={"Statement for " + w.name} onClose={() => setSub(null)}>
           <pre className="stmt">{buildStatement(state, fin, w)}</pre>
-          <a
-            href={waLink(w.phone, buildStatement(state, fin, w))}
-            target="_blank"
-            rel="noreferrer"
-            style={{ textDecoration: "none", display: "block", marginBottom: 8 }}
-          >
-            <Btn label={<><MessageCircle size={19} strokeWidth={2} /> Share on WhatsApp</>} onClick={() => {}} />
+          <a className="btnlink" href={smsLink(w.phone, buildStatement(state, fin, w))}>
+            <Btn label={<><MessageCircle size={19} strokeWidth={2} /> Send by SMS{w.phone ? "" : " (choose contact)"}</>} onClick={() => {}} />
           </a>
           <Btn
             label={copied ? <><Check size={19} strokeWidth={2.4} /> Copied</> : <><Copy size={19} strokeWidth={2} /> Copy Text</>}
@@ -3917,7 +4637,8 @@ function creditCustomers(sales) {
       const due = creditOwed(c);
       if (due <= 0.004) return;
       const k = custKey(c.customer) || "unknown customer";
-      const row = map[k] || (map[k] = { name: (c.customer || "").trim() || "Unknown customer", owed: 0, orig: 0, paid: 0, sales: [], entries: [] });
+      const row = map[k] || (map[k] = { name: (c.customer || "").trim() || "Unknown customer", phone: "", owed: 0, orig: 0, paid: 0, sales: [], entries: [] });
+      if (!row.phone && c.phone) row.phone = c.phone;
       row.owed += due;
       row.orig += Number(c.amount) || 0;
       row.paid += creditRepaid(c);
@@ -3964,6 +4685,178 @@ function waLink(phone, text) {
   if (p.startsWith("0")) p = "233" + p.slice(1);
   const base = p ? "https://wa.me/" + p : "https://wa.me/";
   return base + "?text=" + encodeURIComponent(text);
+}
+/* SMS: the phone's own messages app sends it, so no internet or SMS account is needed.
+   Characters outside the basic SMS alphabet (₵, −, ·) would cut each SMS from
+   160 to 70 characters, so they are swapped for plain ones. */
+function smsSafe(text) {
+  return String(text)
+    .replace(/GH₵\s?/g, "GHS ")
+    .replace(/[−–—]/g, "-")
+    .replace(/·/g, "-")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/…/g, "...")
+    .replace(/×/g, "x");
+}
+function smsLink(phone, text) {
+  const p = (phone || "").replace(/[^\d+]/g, "");
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  return "sms:" + p + (ios ? "&" : "?") + "body=" + encodeURIComponent(smsSafe(text));
+}
+function reminderText(state, row) {
+  const since = row.entries && row.entries.length ? row.entries.map((e) => e.date).sort()[0] : null;
+  return (
+    "Hello " + row.name + ", this is " + (state.company.name || "your fish supplier").replace(/\.+$/, "") + ". " +
+    "You still owe " + fmt(row.owed) + " for fish taken on credit" + (since ? " since " + fmtDate(since) : "") + ". " +
+    "Please pay when you can. Thank you."
+  );
+}
+
+/* ---------------- daily summary ---------------- */
+/* Everything logged for one day, plus a check code: a fingerprint of that
+   day's entries. If anything for the day is added, changed or deleted after
+   the summary was sent or printed, the code in the app no longer matches
+   the code on the message or the paper. */
+function dailySummary(state, fin, date) {
+  const sales = state.sales.filter((s) => s.date === date);
+  const credits = [];
+  sales.forEach((s) => (s.credits || []).forEach((c) => credits.push({ id: c.id, customer: c.customer, amount: Number(c.amount) || 0 })));
+  const repayments = [];
+  state.sales.forEach((s) =>
+    (s.credits || []).forEach((c) =>
+      (c.payments || []).forEach((p) => {
+        if (p.date === date) repayments.push({ id: p.id, customer: c.customer, amount: Number(p.amount) || 0 });
+      })
+    )
+  );
+  const expenses = state.expenses.filter((e) => e.date === date);
+  const cats = {};
+  expenses.forEach((e) => {
+    const c = e.category || "Other";
+    cats[c] = (cats[c] || 0) + (Number(e.amount) || 0);
+  });
+  const crew = [];
+  state.workers.forEach((w) => {
+    w.loans.forEach((x) => x.date === date && crew.push({ id: x.id, name: w.name, what: "Loan", amount: Number(x.amount) || 0 }));
+    w.payments.forEach((x) => x.date === date && crew.push({ id: x.id, name: w.name, what: "Payment" + (x.desc ? " (" + x.desc + ")" : ""), amount: Number(x.amount) || 0 }));
+    w.adjustments.forEach((x) =>
+      x.date === date && crew.push({ id: x.id, name: w.name, what: (x.kind === "bonus" ? "Bonus" : "Deduction") + (x.reason ? " (" + x.reason + ")" : ""), amount: Number(x.amount) || 0 })
+    );
+  });
+  const voids = (state.voided || [])
+    .filter((v) => (v.at || "").slice(0, 10) === date)
+    .map((v) => ({
+      id: v.item && v.item.id,
+      what:
+        v.kind === "sale" ? "Sale" : v.kind === "expense" ? "Expense · " + (v.item.category || "Expense") :
+        (v.kind === "loans" ? "Loan" : v.kind === "payments" ? "Payment" : "Adjustment") + " · " + (v.workerName || "worker"),
+      amount: Number(v.item && v.item.amount) || 0,
+      who: v.who || "owner",
+    }));
+  const sum = (xs) => xs.reduce((a, x) => a + (Number(x.amount) || 0), 0);
+  const salesTotal = sum(sales);
+  const creditTotal = sum(credits);
+  const code =
+    "VS-" +
+    sha256Hex(
+      stableStringify({
+        date,
+        sales: sales.map((s) => ({ id: s.id, amount: s.amount, credits: (s.credits || []).map((c) => ({ id: c.id, customer: c.customer, amount: c.amount })) })),
+        repayments,
+        expenses: expenses.map((e) => ({ id: e.id, amount: e.amount, category: e.category || "" })),
+        crew,
+        voids,
+      })
+    )
+      .slice(0, 6)
+      .toUpperCase();
+  return {
+    date,
+    sales,
+    salesTotal,
+    credits,
+    creditTotal,
+    cashAtSale: salesTotal - creditTotal,
+    repayments,
+    repaidTotal: sum(repayments),
+    expenses,
+    cats: Object.keys(cats).map((c) => ({ cat: c, amount: cats[c] })).sort((a, b) => b.amount - a.amount),
+    expTotal: sum(expenses),
+    crew,
+    voids,
+    entries: sales.length + repayments.length + expenses.length + crew.length + voids.length,
+    season: {
+      name: state.season.name || "This season",
+      sales: fin.grossSales,
+      expenses: fin.fixedTotal + fin.varTotal,
+      owed: fin.creditOutstanding,
+      pot: fin.netPot,
+    },
+    code,
+  };
+}
+const longDate = (iso) =>
+  new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+/* the full summary, for WhatsApp */
+function summaryText(state, d) {
+  const L = [
+    "VAULTSTACK DAILY SUMMARY",
+    state.company.name,
+    longDate(d.date),
+    "------------------------------",
+    "SALES: " + fmt(d.salesTotal) + " (" + d.sales.length + (d.sales.length === 1 ? " landing)" : " landings)"),
+  ];
+  if (d.sales.length) {
+    L.push("  Cash at the sale: " + fmtN(d.cashAtSale));
+    if (d.creditTotal > 0.004) L.push("  On credit: " + fmtN(d.creditTotal) + " (" + d.credits.map((c) => c.customer + " " + fmtN(c.amount)).join(", ") + ")");
+  }
+  if (d.repayments.length) {
+    L.push("CREDIT REPAID: " + fmt(d.repaidTotal));
+    d.repayments.forEach((r) => L.push("  " + r.customer + " " + fmtN(r.amount)));
+  }
+  L.push("EXPENSES: " + fmt(d.expTotal));
+  d.cats.forEach((c) => L.push("  " + c.cat + " " + fmtN(c.amount)));
+  if (d.crew.length) {
+    L.push("CREW");
+    d.crew.forEach((c) => L.push("  " + c.name + " · " + c.what + " " + fmtN(c.amount)));
+  }
+  if (d.voids.length) {
+    L.push("DELETED TODAY");
+    d.voids.forEach((v) => L.push("  " + v.what + " " + fmtN(v.amount) + (v.who === "crew" ? " (crew)" : "")));
+  }
+  L.push(
+    "------------------------------",
+    "SEASON SO FAR (" + d.season.name + ")",
+    "  Sales " + fmtN(d.season.sales),
+    "  Expenses " + fmtN(d.season.expenses),
+    "  Customers owe " + fmtN(d.season.owed),
+    "  Money in the pot " + fmtN(d.season.pot),
+    "------------------------------",
+    "Check code: " + d.code,
+    "If the app later shows a different code for this day, something was changed after this summary."
+  );
+  return L.join("\n");
+}
+/* one SMS (160 plain characters) */
+function summaryShort(state, d) {
+  const n = (x) => Math.round(x).toLocaleString("en-GB");
+  const day = new Date(d.date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const parts = [
+    "Sales " + n(d.salesTotal) + (d.creditTotal > 0.004 ? " (credit " + n(d.creditTotal) + ")" : ""),
+    d.repaidTotal > 0.004 ? "Repaid " + n(d.repaidTotal) : null,
+    "Exp " + n(d.expTotal),
+    d.voids.length ? d.voids.length + " deleted" : null,
+    "Pot " + n(d.season.pot),
+  ].filter(Boolean);
+  const tail = ". Code " + d.code;
+  let name = (state.company.name || "VaultStack").slice(0, 22);
+  let text = name + " " + day + ": " + parts.join(", ") + tail;
+  while (text.length > 160 && name.length > 0) {
+    name = name.slice(0, -1);
+    text = name + " " + day + ": " + parts.join(", ") + tail;
+  }
+  return smsSafe(text);
 }
 function copyText(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
