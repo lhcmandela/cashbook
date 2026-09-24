@@ -1,0 +1,26 @@
+/* VaultStack colour tokens (light + automatic dark). Copy as-is. */
+:root{
+  color-scheme:light dark;
+  --bg:#F2F2F7;--card:#FFFFFF;--card2:#F2F2F7;--sheet:#FFFFFF;--hl:#E5E5EA;
+  --label:#000000;--sec:rgba(60,60,67,.6);--ter:rgba(60,60,67,.3);--sep:rgba(60,60,67,.2);
+  --fill:rgba(120,120,128,.12);--seg-on:#FFFFFF;
+  --tint:#0A7CC1;--tint-soft:rgba(10,124,193,.12);
+  --green:#34C759;--green-t:#248A3D;--orange:#FF9500;--orange-t:#C35A00;--red:#FF3B30;
+  --overlay:rgba(0,0,0,.28);
+  --glass-bg:rgba(255,255,255,.62);--glass-brd:rgba(255,255,255,.8);
+  --glass-shadow:0 8px 30px rgba(0,0,0,.10),inset 0 1px 1px rgba(255,255,255,.95),inset 0 -1px 1px rgba(0,0,0,.035);
+  --tabidle:#3C3C43;--poster:#B7DCF2;--poster2:#D6ECF8;--lock1:#E3F0F9;--hud:rgba(236,236,240,.96);--desk:#E5E5EA;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--sheet:#1C1C1E;--hl:#3A3A3C;
+    --label:#FFFFFF;--sec:rgba(235,235,245,.6);--ter:rgba(235,235,245,.3);--sep:rgba(84,84,88,.6);
+    --fill:rgba(120,120,128,.26);--seg-on:#636366;
+    --tint:#40B4F2;--tint-soft:rgba(64,180,242,.18);
+    --green:#30D158;--green-t:#30D158;--orange:#FF9F0A;--orange-t:#FF9F0A;--red:#FF453A;
+    --overlay:rgba(0,0,0,.5);
+    --glass-bg:rgba(46,46,50,.58);--glass-brd:rgba(255,255,255,.13);
+    --glass-shadow:0 8px 30px rgba(0,0,0,.55),inset 0 1px 1px rgba(255,255,255,.13);
+    --tabidle:#D1D1D6;--poster:#0E3A57;--poster2:#08233A;--lock1:#0A2233;--hud:#2C2C2E;--desk:#0B0B0C;
+  }
+}
