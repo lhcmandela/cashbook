@@ -69,8 +69,6 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 .titlebar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:18px 20px 14px}
 .eyebrow{font-size:13px;font-weight:600;color:var(--sec);text-transform:uppercase;letter-spacing:-.005em}
 .lt{font-size:34px;font-weight:700;letter-spacing:-.028em;line-height:41px}
-.lt.page{font-size:42px;line-height:48px;font-weight:800;letter-spacing:-.034em}
-@media (max-width:350px){.lt.page{font-size:36px;line-height:42px}}
 .lsub{font-size:15px;color:var(--sec);margin-top:1px;letter-spacing:-.012em}
 .px{padding-left:16px;padding-right:16px}
 .sh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:26px 4px 10px}
@@ -872,8 +870,8 @@ function TitleBlock({ eyebrow, title, sub, right }) {
     <div className="titlebar">
       <div style={{ minWidth: 0 }}>
         {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
-        <div className="lt page">{title}</div>
-        {sub ? <div className="lsub truncate" style={{ marginTop: 3 }}>{sub}</div> : null}
+        <div className="lt">{title}</div>
+        {sub ? <div className="lsub truncate">{sub}</div> : null}
       </div>
       {right || null}
     </div>
@@ -2358,7 +2356,7 @@ function WeatherTabV2({ onBack }) {
         <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.82, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, textTransform: "uppercase", letterSpacing: ".04em" }}>
           <LocationFill size={12} /> Sea Conditions
         </div>
-        <div style={{ fontSize: 42, fontWeight: 700, letterSpacing: "-.034em", lineHeight: "48px", marginTop: 4 }}>Adina</div>
+        <div style={{ fontSize: 34, fontWeight: 500, letterSpacing: "-.02em", marginTop: 2 }}>Adina</div>
         <div style={{ fontSize: bigSize, fontWeight: 250, letterSpacing: "-.05em", lineHeight: 1, marginTop: 4 }}>{word}</div>
         <div style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-.02em", marginTop: 10 }}>{verdict.msg || "Checking the sea…"}</div>
         {!loading ? (
