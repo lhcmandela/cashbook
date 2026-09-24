@@ -27,7 +27,7 @@
   --overlay:rgba(0,0,0,.28);
   --glass-bg:rgba(255,255,255,.62);--glass-brd:rgba(255,255,255,.8);
   --glass-shadow:0 8px 30px rgba(0,0,0,.10),inset 0 1px 1px rgba(255,255,255,.95),inset 0 -1px 1px rgba(0,0,0,.035);
-  --poster:#B7DCF2;--poster2:#D6ECF8;--lock1:#E3F0F9;--hud:rgba(236,236,240,.96);--desk:#E5E5EA;
+  --tabidle:#3C3C43;--poster:#B7DCF2;--poster2:#D6ECF8;--lock1:#E3F0F9;--hud:rgba(236,236,240,.96);--desk:#E5E5EA;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -39,7 +39,7 @@
     --overlay:rgba(0,0,0,.5);
     --glass-bg:rgba(46,46,50,.58);--glass-brd:rgba(255,255,255,.13);
     --glass-shadow:0 8px 30px rgba(0,0,0,.55),inset 0 1px 1px rgba(255,255,255,.13);
-    --poster:#0E3A57;--poster2:#08233A;--lock1:#0A2233;--hud:#2C2C2E;--desk:#0B0B0C;
+    --tabidle:#D1D1D6;--poster:#0E3A57;--poster2:#08233A;--lock1:#0A2233;--hud:#2C2C2E;--desk:#0B0B0C;
   }
 }
 html,body{height:100%;margin:0}
@@ -140,7 +140,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 .gbtn{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--label);cursor:pointer;padding:0;flex-shrink:0}
 .navrow{height:56px;display:flex;align-items:center;justify-content:space-between;padding:6px 16px 0}
 .tabbar{position:absolute;left:12px;right:88px;bottom:calc(max(env(safe-area-inset-bottom,0px),20px) - 6px);height:64px;border-radius:32px;display:flex;padding:4px;z-index:30}
-.tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:transparent;border-radius:28px;font-size:10px;font-weight:600;color:var(--label);cursor:pointer;padding:0;letter-spacing:0}
+.tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:transparent;border-radius:28px;font-size:10px;font-weight:600;color:var(--tabidle);cursor:pointer;padding:0;letter-spacing:0}
 .tab.on{color:var(--tint);background:var(--fill)}
 .tabbar.glass-sky .tab{color:#fff} .tabbar.glass-sky .tab.on{background:rgba(255,255,255,.24);color:#fff}
 .fab{position:absolute;right:12px;bottom:calc(max(env(safe-area-inset-bottom,0px),20px) - 6px);width:64px;height:64px;border-radius:50%;z-index:30;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0}
@@ -357,6 +357,18 @@ function Star(p){return <IconBase {...p}><path d="m12 3.8 2.5 5.1 5.6.8-4 4 .9 5
 function Pie(p){return <IconBase {...p}><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 2.9a8.6 8.6 0 0 1 6.1 6.1H15z"/></IconBase>;}
 function DeleteLeft(p){return <IconBase {...p}><path d="M20 5.5H9.3a2 2 0 0 0-1.5.7L3 12l4.8 5.8a2 2 0 0 0 1.5.7H20a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2Z"/><path d="m11.5 9.5 5 5M16.5 9.5l-5 5"/></IconBase>;}
 const Info = PlusCircle;
+
+/* tab bar: outline when idle, solid when selected (knock-outs keep the detail) */
+function TabHome(p){return <IconBase {...p}><path d="M4 10.4 12 4.2l8 6.2v8.8a1.3 1.3 0 0 1-1.3 1.3h-3.5v-5.2a1.2 1.2 0 0 0-1.2-1.2h-4a1.2 1.2 0 0 0-1.2 1.2v5.2H5.3A1.3 1.3 0 0 1 4 19.2z"/></IconBase>;}
+function TabHomeOn({color="currentColor",...p}){return <IconBase {...p} color={color}><path fill={color} stroke={color} strokeWidth="1.2" d="M3.6 10.3 12 3.7l8.4 6.6v8.9a1.6 1.6 0 0 1-1.6 1.6h-3.6v-5.1a1.3 1.3 0 0 0-1.3-1.3H10.1a1.3 1.3 0 0 0-1.3 1.3v5.1H5.2a1.6 1.6 0 0 1-1.6-1.6z"/></IconBase>;}
+function TabSales(p){return <IconBase {...p}><path d="M7.4 12c2-3.3 4.9-5 7.9-5 2.9 0 5.1 1.7 6.7 5-1.6 3.3-3.8 5-6.7 5-3 0-5.9-1.7-7.9-5Z"/><path d="M7.4 12 2.6 8.3v7.4Z"/><path d="M11.4 8.8c.8 2.1.8 4.3 0 6.4"/><Dot cx={17.6} cy={11} r={1}/></IconBase>;}
+function TabSalesOn({color="currentColor",...p}){return <IconBase {...p} color={color}><path fill={color} stroke="none" fillRule="evenodd" d="M6.5 12c2.1-3.8 5.3-5.8 8.8-5.8 3.2 0 5.7 2 7.4 5.8-1.7 3.8-4.2 5.8-7.4 5.8-3.5 0-6.7-2-8.8-5.8ZM18.9 10.9a1.3 1.3 0 1 0-2.6 0 1.3 1.3 0 0 0 2.6 0Z"/><path fill={color} d="M7.4 12 2.6 8.3v7.4Z"/></IconBase>;}
+function TabExpenses(p){return <IconBase {...p}><path d="M6.3 3.5h11.4a.8.8 0 0 1 .8.8v16l-2.2-1.3-2.1 1.3-2.2-1.3-2.2 1.3-2.1-1.3-2.2 1.3v-16a.8.8 0 0 1 .8-.8Z"/><path d="M9 8.3h6M9 11.8h6M9 15.3h3.5"/></IconBase>;}
+function TabExpensesOn({color="currentColor",...p}){return <IconBase {...p} color={color}><path fill={color} stroke="none" fillRule="evenodd" d="M6.2 2.6h11.6a1.6 1.6 0 0 1 1.6 1.6v17.5l-3.1-1.9-2.2 1.4-2.1-1.4-2.1 1.4-2.2-1.4-3.1 1.9V4.2a1.6 1.6 0 0 1 1.6-1.6ZM8.9 7.3a1 1 0 0 0 0 2h6.2a1 1 0 0 0 0-2Zm0 3.6a1 1 0 0 0 0 2h6.2a1 1 0 0 0 0-2Zm0 3.6a1 1 0 0 0 0 2h3.6a1 1 0 0 0 0-2Z"/></IconBase>;}
+function TabWorkers(p){return <IconBase {...p}><circle cx="9" cy="8.2" r="3.3"/><path d="M3.2 19.8a5.8 5.8 0 0 1 11.6 0Z"/><path d="M15.6 5.1a3.1 3.1 0 0 1 0 6.1M17.4 14.2a5.8 5.8 0 0 1 3.4 5.6"/></IconBase>;}
+function TabWorkersOn({color="currentColor",...p}){return <IconBase {...p} color={color}><circle cx="9" cy="8.2" r="3.4" fill={color}/><path fill={color} d="M3.2 19.8a5.8 5.8 0 0 1 11.6 0Z"/><circle cx="16.2" cy="8.2" r="2.8" fill={color}/><path fill={color} d="M16.4 13.6a5.6 5.6 0 0 1 4.4 6.2h-4.2a7.6 7.6 0 0 0-2.3-5.8 5.4 5.4 0 0 1 2.1-.4Z"/></IconBase>;}
+function TabMore(p){return <IconBase {...p}><circle cx="12" cy="12" r="8.8"/><Dot cx={7.9} cy={12} r={1.15}/><Dot cx={12} cy={12} r={1.15}/><Dot cx={16.1} cy={12} r={1.15}/></IconBase>;}
+function TabMoreOn({color="currentColor",...p}){return <IconBase {...p} color={color}><path fill={color} stroke="none" fillRule="evenodd" d="M12 2.3a9.7 9.7 0 1 1 0 19.4 9.7 9.7 0 0 1 0-19.4ZM7.8 10.55a1.45 1.45 0 1 0 0 2.9 1.45 1.45 0 0 0 0-2.9Zm4.2 0a1.45 1.45 0 1 0 0 2.9 1.45 1.45 0 0 0 0-2.9Zm4.2 0a1.45 1.45 0 1 0 0 2.9 1.45 1.45 0 0 0 0-2.9Z"/></IconBase>;}
 
 /* ============================================================
    VaultStack — season money book for Ghanaian fishing crews.
@@ -1938,11 +1950,11 @@ function VaultStackV3() {
     );
 
   const tabs = [
-    { id: "home", Icon: HouseLine, IconOn: HouseFill, label: "Home" },
-    { id: "sales", Icon: Banknote, IconOn: NoteFill, label: "Sales" },
-    { id: "expenses", Icon: Package, IconOn: BoxFill, label: "Expenses" },
-    { id: "workers", Icon: PeopleLine, IconOn: PeopleFill, label: "Workers" },
-    { id: "more", Icon: MoreCircle, IconOn: MoreCircleFill, label: "More" },
+    { id: "home", Icon: TabHome, IconOn: TabHomeOn, label: "Home" },
+    { id: "sales", Icon: TabSales, IconOn: TabSalesOn, label: "Sales" },
+    { id: "expenses", Icon: TabExpenses, IconOn: TabExpensesOn, label: "Expenses" },
+    { id: "workers", Icon: TabWorkers, IconOn: TabWorkersOn, label: "Workers" },
+    { id: "more", Icon: TabMore, IconOn: TabMoreOn, label: "More" },
   ];
   const activeTab = tab === "weather" ? "more" : tab;
   const sky = tab === "weather";
