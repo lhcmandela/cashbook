@@ -5,6 +5,8 @@ description: The owner's UI/UX standard and working style for VaultStack (lhcman
 
 # VaultStack UI style
 
+> The app was renamed **Cashbook** in September 2026 (repository `lhcmandela/cashbook`, site `lhcmandela.github.io/cashbook`). Show "Cashbook" to users, but never rename the `vaultstack:` storage keys: every phone's books are saved under them.
+
 The owner (a Python developer, not a front-end specialist) iterated a long way to reach a design they love. This skill records it so they never have to describe it again. Follow it by default; if they ask for something different, their new request wins — then remember the direction they moved in.
 
 ## How to work with this user

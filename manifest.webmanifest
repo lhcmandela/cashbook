@@ -1,6 +1,6 @@
 {
-  "name": "VaultStack",
-  "short_name": "VaultStack",
+  "name": "Cashbook",
+  "short_name": "Cashbook",
   "description": "The season money book for fishing crews. Works offline.",
   "start_url": "./",
   "scope": "./",

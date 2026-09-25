@@ -1,8 +1,8 @@
-/* VaultStack service worker: keeps the app on the phone so it opens with no
+/* Cashbook service worker: keeps the app on the phone so it opens with no
    signal. The page is fetched fresh when online (so updates arrive) and
    falls back to the stored copy when the network is slow or gone. Sea
    readings are never served from the store: they must be live. */
-const VERSION = "vaultstack-v1";
+const VERSION = "cashbook-v1";
 const CORE = [
   "./",
   "./index.html",

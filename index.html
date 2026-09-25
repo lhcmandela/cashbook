@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="VaultStack">
-<title>VaultStack</title>
+<meta name="apple-mobile-web-app-title" content="Cashbook">
+<title>Cashbook</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -430,7 +430,7 @@ function TabMore(p){return <IconBase {...p}><circle cx="12" cy="12" r="8.8"/><Do
 function TabMoreOn({color="currentColor",...p}){return <IconBase {...p} color={color}><path fill={color} stroke="none" fillRule="evenodd" d="M12 2.3a9.7 9.7 0 1 1 0 19.4 9.7 9.7 0 0 1 0-19.4ZM7.8 10.55a1.45 1.45 0 1 0 0 2.9 1.45 1.45 0 0 0 0-2.9Zm4.2 0a1.45 1.45 0 1 0 0 2.9 1.45 1.45 0 0 0 0-2.9Zm4.2 0a1.45 1.45 0 1 0 0 2.9 1.45 1.45 0 0 0 0-2.9Z"/></IconBase>;}
 
 /* ============================================================
-   VaultStack — season money book for Ghanaian fishing crews.
+   Cashbook — season money book for Ghanaian fishing crews.
    Engine: net pot (sales − fixed costs − trip expenses),
    position pay taken off the top, remainder shared by share units.
    ============================================================ */
@@ -902,11 +902,11 @@ async function vsBioEnroll() {
   const cred = await navigator.credentials.create({
     publicKey: {
       challenge,
-      rp: { name: "VaultStack" },
+      rp: { name: "Cashbook" },
       user: {
         id: userId,
         name: "vaultstack-owner",
-        displayName: "VaultStack owner",
+        displayName: "Cashbook owner",
       },
       pubKeyCredParams: [
         { type: "public-key", alg: -7 },
@@ -1481,7 +1481,7 @@ function LockScreen({ company, onUnlock, unlocking, error, onPin }) {
     <div className="lockscr">
       <div style={{ textAlign: "center", marginTop: "8vh" }}>
         <AppIcon size={100} />
-        <div className="lt" style={{ fontSize: 26, lineHeight: "32px", marginTop: 22 }}>VaultStack is Locked</div>
+        <div className="lt" style={{ fontSize: 26, lineHeight: "32px", marginTop: 22 }}>Cashbook is Locked</div>
         <div className="lsub" style={{ fontSize: 16, marginTop: 4 }}>{company}</div>
       </div>
       <button className="hud vs-press" onClick={onUnlock} disabled={unlocking} aria-label={"Unlock with " + bioName}>
@@ -1662,7 +1662,7 @@ function Onboarding3({ onFinish, onDemo, bio }) {
           <div className="lt" style={{ fontSize: 28, lineHeight: "34px", marginTop: 22 }}>Use {bioName} to unlock?</div>
           <div className="lsub" style={{ fontSize: 17, lineHeight: 1.45, marginTop: 10, padding: "0 8px" }}>
             {bio.supported
-              ? "VaultStack will open with a glance or a touch. Your PIN keeps working if a scan fails."
+              ? "Cashbook will open with a glance or a touch. Your PIN keeps working if a scan fails."
               : "This phone or browser does not support biometric unlock, so you keep using your PIN."}
           </div>
           <div className="foot center" style={{ marginTop: 14, padding: "0 12px" }}>
@@ -1689,7 +1689,7 @@ function Onboarding3({ onFinish, onDemo, bio }) {
       <div className="onb">
         <div className="px" style={{ paddingTop: 56, textAlign: "center" }}>
           <AppIcon size={96} />
-          <div className="lt" style={{ marginTop: 24, fontSize: 32, lineHeight: "38px" }}>Welcome to VaultStack</div>
+          <div className="lt" style={{ marginTop: 24, fontSize: 32, lineHeight: "38px" }}>Welcome to Cashbook</div>
           <div className="lsub" style={{ marginTop: 8, lineHeight: 1.45, fontSize: 17, padding: "0 6px" }}>
             The season money book for fishing crews. Works offline and keeps every cedi accounted for.
           </div>
@@ -1997,7 +1997,7 @@ function VaultStackV3() {
   if (state === null)
     return (
       <div style={{ fontFamily: baseFont, padding: 40, textAlign: "center", color: MUTED }}>
-        Opening VaultStack…
+        Opening Cashbook…
       </div>
     );
 
@@ -2918,7 +2918,7 @@ function HomeTabV2({ state, fin, openSale, openExpense, go, onLock, saveStamp, o
             <path d="M0 106c30-14 60-14 90 0s60 14 90 0 60-14 90 0 60 14 90 0 60-14 90 0" />
           </svg>
           <div className="ptop">
-            <div className="pbrand"><AnchorMark size={19} strokeWidth={2.2} />VaultStack</div>
+            <div className="pbrand"><AnchorMark size={19} strokeWidth={2.2} />Cashbook</div>
             <div className="pseason">{state.season.name || "This season"}</div>
           </div>
           <div className="pbot">
@@ -3727,7 +3727,7 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio, canEdi
         ) : null}
         {bio && !bio.enrolled && bio.supported ? (
           <div className="foot">
-            Your phone’s {bioName} unlocks the app. No biometric data touches VaultStack, and your PIN still works if a scan fails.
+            Your phone’s {bioName} unlocks the app. No biometric data touches Cashbook, and your PIN still works if a scan fails.
           </div>
         ) : null}
 
@@ -3773,7 +3773,7 @@ function MoreTabV2({ state, fin, onCloseSeason, onReset, onLock, go, bio, canEdi
         ) : (
           <div className="foot center" style={{ paddingTop: 24 }}>Closing the season and erasing data need the owner PIN.</div>
         )}
-        <div className="foot center" style={{ paddingTop: 14 }}>VaultStack keeps everything on this phone.</div>
+        <div className="foot center" style={{ paddingTop: 14 }}>Cashbook keeps everything on this phone.</div>
       </div>
       <Spacer />
 
@@ -3942,7 +3942,7 @@ function SummaryPrint({ state, d }) {
       <div className="pcode">
         <div>
           Check code
-          <div className="small">If VaultStack later shows a different code for this day, something was changed after this page was printed.</div>
+          <div className="small">If Cashbook later shows a different code for this day, something was changed after this page was printed.</div>
         </div>
         <b>{d.code}</b>
       </div>
@@ -4656,7 +4656,7 @@ function buildStatement(state, fin, w) {
     ? (state.positions.find((p) => p.id === w.positionId) || {}).name
     : null;
   const lines = [
-    "VAULTSTACK STATEMENT",
+    "CASHBOOK STATEMENT",
     state.company.name,
     "Season: " + state.season.name,
     "For: " + w.name + (posName ? " (" + posName + ")" : ""),
@@ -4801,7 +4801,7 @@ const longDate = (iso) =>
 /* the full summary, for WhatsApp */
 function summaryText(state, d) {
   const L = [
-    "VAULTSTACK DAILY SUMMARY",
+    "CASHBOOK DAILY SUMMARY",
     state.company.name,
     longDate(d.date),
     "------------------------------",
@@ -4850,7 +4850,7 @@ function summaryShort(state, d) {
     "Pot " + n(d.season.pot),
   ].filter(Boolean);
   const tail = ". Code " + d.code;
-  let name = (state.company.name || "VaultStack").slice(0, 22);
+  let name = (state.company.name || "Cashbook").slice(0, 22);
   let text = name + " " + day + ": " + parts.join(", ") + tail;
   while (text.length > 160 && name.length > 0) {
     name = name.slice(0, -1);
